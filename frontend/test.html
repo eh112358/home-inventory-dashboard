@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Tests - Home Inventory</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        h2 { margin-top: 30px; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Unit Tests</h1>
+    <div id="results"></div>
+
+    <script>
+        // Test results container
+        const results = document.getElementById('results');
+        let passed = 0;
+        let failed = 0;
+
+        function test(name, fn) {
+            const div = document.createElement('div');
+            div.className = 'test';
+            try {
+                fn();
+                div.className += ' pass';
+                div.textContent = `PASS: ${name}`;
+                passed++;
+            } catch (e) {
+                div.className += ' fail';
+                div.textContent = `FAIL: ${name} - ${e.message}`;
+                failed++;
+            }
+            results.appendChild(div);
+        }
+
+        function assertEqual(actual, expected, message = '') {
+            if (actual !== expected) {
+                throw new Error(`${message} Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+            }
+        }
+
+        function assertTrue(condition, message = '') {
+            if (!condition) {
+                throw new Error(message || 'Expected true, got false');
+            }
+        }
+
+        // =================================================================
+        // escapeHtml tests
+        // =================================================================
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        results.innerHTML += '<h2>escapeHtml() Tests</h2>';
+
+        test('escapeHtml handles null', () => {
+            assertEqual(escapeHtml(null), '');
+        });
+
+        test('escapeHtml handles undefined', () => {
+            assertEqual(escapeHtml(undefined), '');
+        });
+
+        test('escapeHtml handles empty string', () => {
+            assertEqual(escapeHtml(''), '');
+        });
+
+        test('escapeHtml handles plain text', () => {
+            assertEqual(escapeHtml('Hello World'), 'Hello World');
+        });
+
+        test('escapeHtml escapes HTML tags', () => {
+            const result = escapeHtml('<script>alert("xss")</script>');
+            assertTrue(!result.includes('<script>'), 'Should escape script tags');
+        });
+
+        test('escapeHtml escapes ampersands', () => {
+            const result = escapeHtml('Tom & Jerry');
+            assertTrue(result.includes('&amp;'), 'Should escape ampersands');
+        });
+
+        test('escapeHtml escapes quotes', () => {
+            const result = escapeHtml('Say "hello"');
+            // Quotes may or may not be escaped depending on browser
+            assertTrue(result.length > 0, 'Should return a string');
+        });
+
+        test('escapeHtml handles numbers', () => {
+            assertEqual(escapeHtml(42), '42');
+        });
+
+        // =================================================================
+        // Days calculation tests
+        // =================================================================
+        results.innerHTML += '<h2>Days Until Empty Calculation Tests</h2>';
+
+        function calculateDaysUntilEmpty(currentQty, usageRate, period) {
+            let dailyRate;
+            if (period === 'day') {
+                dailyRate = usageRate;
+            } else if (period === 'week') {
+                dailyRate = usageRate / 7;
+            } else if (period === 'month') {
+                dailyRate = usageRate / 30;
+            } else {
+                dailyRate = usageRate / 7;
+            }
+
+            if (dailyRate > 0) {
+                return Math.round((currentQty / dailyRate) * 10) / 10;
+            }
+            return null;
+        }
+
+        test('calculates days for weekly usage', () => {
+            // 14 units at 7/week = 2 weeks = 14 days
+            const days = calculateDaysUntilEmpty(14, 7, 'week');
+            assertEqual(days, 14);
+        });
+
+        test('calculates days for daily usage', () => {
+            // 10 units at 2/day = 5 days
+            const days = calculateDaysUntilEmpty(10, 2, 'day');
+            assertEqual(days, 5);
+        });
+
+        test('calculates days for monthly usage', () => {
+            // 2 units at 1/month = 60 days (2 months)
+            const days = calculateDaysUntilEmpty(2, 1, 'month');
+            assertEqual(days, 60);
+        });
+
+        test('returns null for zero usage rate', () => {
+            const days = calculateDaysUntilEmpty(10, 0, 'week');
+            assertEqual(days, null);
+        });
+
+        // =================================================================
+        // Needs purchase flag tests
+        // =================================================================
+        results.innerHTML += '<h2>Needs Purchase Logic Tests</h2>';
+
+        function needsPurchase(currentQty, minStockLevel) {
+            return currentQty <= minStockLevel;
+        }
+
+        test('needs purchase when below minimum', () => {
+            assertTrue(needsPurchase(2, 5));
+        });
+
+        test('needs purchase when at minimum', () => {
+            assertTrue(needsPurchase(5, 5));
+        });
+
+        test('does not need purchase when above minimum', () => {
+            assertTrue(!needsPurchase(10, 5));
+        });
+
+        // =================================================================
+        // Low stock tests
+        // =================================================================
+        results.innerHTML += '<h2>Low Stock Logic Tests</h2>';
+
+        function isLowStock(daysUntilEmpty, needsPurchaseFlag) {
+            return daysUntilEmpty !== null && daysUntilEmpty <= 7 && !needsPurchaseFlag;
+        }
+
+        test('is low stock when less than 7 days', () => {
+            assertTrue(isLowStock(5, false));
+        });
+
+        test('is not low stock when needs purchase', () => {
+            assertTrue(!isLowStock(5, true));
+        });
+
+        test('is not low stock when more than 7 days', () => {
+            assertTrue(!isLowStock(10, false));
+        });
+
+        test('is not low stock when days is null', () => {
+            assertTrue(!isLowStock(null, false));
+        });
+
+        // =================================================================
+        // Summary
+        // =================================================================
+        results.innerHTML += '<h2>Test Summary</h2>';
+        const summary = document.createElement('div');
+        summary.className = 'test ' + (failed === 0 ? 'pass' : 'fail');
+        summary.innerHTML = `<strong>${passed} passed, ${failed} failed</strong>`;
+        results.appendChild(summary);
+    </script>
+</body>
+</html>

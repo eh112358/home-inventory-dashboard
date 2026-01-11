@@ -1,0 +1,16 @@
+services:
+  home-inventory:
+    build: .
+    container_name: home-inventory
+    ports:
+      - "828:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - APP_PASSWORD=${APP_PASSWORD:-home123}
+      - DATABASE_PATH=/app/data/inventory.db
+    volumes:
+      - inventory-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  inventory-data:

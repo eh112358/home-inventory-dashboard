@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Inventory Manager</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+        <div class="login-container">
+            <h1>Home Inventory</h1>
+            <p>Enter password to continue</p>
+            <form id="login-form">
+                <input type="password" id="password-input" placeholder="Password" required>
+                <button type="submit">Login</button>
+                <p id="login-error" class="error"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-screen" class="screen hidden">
+        <!-- Header -->
+        <header>
+            <h1>Home Inventory</h1>
+            <nav>
+                <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+                <button class="nav-btn" data-view="inventory">Inventory</button>
+                <button class="nav-btn" data-view="purchases">Purchases</button>
+                <button class="nav-btn" data-view="manage">Manage Items</button>
+            </nav>
+            <button id="logout-btn">Logout</button>
+        </header>
+
+        <!-- Dashboard View -->
+        <main id="dashboard-view" class="view">
+            <div class="stats-bar">
+                <div class="stat-card urgent">
+                    <span class="stat-number" id="stat-needs-purchase">0</span>
+                    <span class="stat-label">Need to Buy</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-total">0</span>
+                    <span class="stat-label">Items Tracked</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-recent">0</span>
+                    <span class="stat-label">Purchases (7d)</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Items to Purchase</h2>
+                <div class="filter-bar">
+                    <select id="dashboard-category-filter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div id="needs-purchase-list" class="items-grid"></div>
+            </div>
+
+            <div class="section">
+                <h2>Low Stock (Less than 7 days)</h2>
+                <div id="low-stock-list" class="items-grid"></div>
+            </div>
+        </main>
+
+        <!-- Inventory View -->
+        <main id="inventory-view" class="view hidden">
+            <div class="section">
+                <h2>Current Inventory</h2>
+                <div class="filter-bar">
+                    <select id="inventory-category-filter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div id="inventory-list" class="items-list"></div>
+            </div>
+        </main>
+
+        <!-- Purchases View -->
+        <main id="purchases-view" class="view hidden">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Log New Purchase</h2>
+                </div>
+                <form id="purchase-form" class="form-inline">
+                    <select id="purchase-item" required>
+                        <option value="">Select Item</option>
+                    </select>
+                    <input type="number" id="purchase-quantity" placeholder="Quantity" step="0.1" min="0" required>
+                    <input type="date" id="purchase-date">
+                    <input type="number" id="purchase-price" placeholder="Price (optional)" step="0.01" min="0">
+                    <button type="submit">Add Purchase</button>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>Recent Purchases</h2>
+                <div id="purchases-list" class="purchases-table"></div>
+            </div>
+        </main>
+
+        <!-- Manage Items View -->
+        <main id="manage-view" class="view hidden">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Add New Item</h2>
+                </div>
+                <form id="add-item-form" class="form-grid">
+                    <div class="form-row">
+                        <label>Category</label>
+                        <select id="new-item-category" required></select>
+                    </div>
+                    <div class="form-row">
+                        <label>Name</label>
+                        <input type="text" id="new-item-name" required>
+                    </div>
+                    <div class="form-row">
+                        <label>Unit</label>
+                        <input type="text" id="new-item-unit" placeholder="e.g., rolls, bottles, boxes" required>
+                    </div>
+                    <div class="form-row">
+                        <label>Usage Rate</label>
+                        <div class="usage-input">
+                            <input type="number" id="new-item-usage-rate" step="0.1" min="0" required>
+                            <span>per</span>
+                            <select id="new-item-usage-period">
+                                <option value="day">day</option>
+                                <option value="week" selected>week</option>
+                                <option value="month">month</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>Min Stock Level</label>
+                        <input type="number" id="new-item-min-stock" step="0.1" min="0" required>
+                    </div>
+                    <div class="form-row">
+                        <label>Notes</label>
+                        <textarea id="new-item-notes" rows="2"></textarea>
+                    </div>
+                    <button type="submit">Add Item</button>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>Manage Existing Items</h2>
+                <div class="filter-bar">
+                    <select id="manage-category-filter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div id="manage-items-list" class="items-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Item</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="edit-item-form" class="form-grid">
+                <input type="hidden" id="edit-item-id">
+                <div class="form-row">
+                    <label>Category</label>
+                    <select id="edit-item-category" required></select>
+                </div>
+                <div class="form-row">
+                    <label>Name</label>
+                    <input type="text" id="edit-item-name" required>
+                </div>
+                <div class="form-row">
+                    <label>Unit</label>
+                    <input type="text" id="edit-item-unit" required>
+                </div>
+                <div class="form-row">
+                    <label>Default Usage Rate</label>
+                    <div class="usage-input">
+                        <input type="number" id="edit-item-usage-rate" step="0.1" min="0" required>
+                        <span>per</span>
+                        <select id="edit-item-usage-period">
+                            <option value="day">day</option>
+                            <option value="week">week</option>
+                            <option value="month">month</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Custom Usage Rate (optional)</label>
+                    <input type="number" id="edit-item-custom-rate" step="0.1" min="0" placeholder="Leave blank to use default">
+                </div>
+                <div class="form-row">
+                    <label>Current Quantity</label>
+                    <input type="number" id="edit-item-quantity" step="0.1" min="0" required>
+                </div>
+                <div class="form-row">
+                    <label>Min Stock Level</label>
+                    <input type="number" id="edit-item-min-stock" step="0.1" min="0" required>
+                </div>
+                <div class="form-row">
+                    <label>Notes</label>
+                    <textarea id="edit-item-notes" rows="2"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" class="btn-danger" id="delete-item-btn">Delete Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Add Purchase Modal -->
+    <div id="quick-purchase-modal" class="modal hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>Quick Add Purchase</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="quick-purchase-form">
+                <input type="hidden" id="quick-purchase-item-id">
+                <p id="quick-purchase-item-name"></p>
+                <div class="form-row">
+                    <label>Quantity</label>
+                    <input type="number" id="quick-purchase-quantity" step="0.1" min="0" required>
+                </div>
+                <button type="submit">Add Purchase</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
