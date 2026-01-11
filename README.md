@@ -21,7 +21,7 @@ docker-compose up -d
 
 2. **Access the application:**
 
-Open http://localhost:5000 in your browser.
+Open http://localhost:828 in your browser.
 
 3. **Default password:** `home123`
 
