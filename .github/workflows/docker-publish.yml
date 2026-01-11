@@ -74,5 +74,6 @@ jobs:
 
       - name: Run tests
         run: |
+          mkdir -p data
           cd backend
           pytest tests/ -v --cov=. --cov-report=term-missing
