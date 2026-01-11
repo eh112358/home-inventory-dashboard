@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" ps -a --filter name=home-inventory)",
+      "Bash(\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" volume ls --filter name=home-inventory)",
+      "Bash(\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" compose -f \"C:\\\\Users\\\\EthanHenkel\\\\Sync\\\\swprojects\\\\charproject\\\\home-inventory\\\\docker-compose.yml\" up -d)",
+      "Bash(curl:*)",
+      "Bash(\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" compose -f \"C:\\\\Users\\\\EthanHenkel\\\\Sync\\\\swprojects\\\\charproject\\\\home-inventory\\\\docker-compose.yml\" down)",
+      "Bash(\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" logs home-inventory)",
+      "Bash(docker ps:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Home Inventory Management System\n\n- Flask backend with SQLite database\n- Vanilla HTML/CSS/JS frontend\n- Docker and Docker Compose configuration\n- GitHub Actions workflow for CI/CD\n- 23 API tests with 96% coverage\n- Tracks household consumables with usage rate predictions\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:ghcr.io)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}
