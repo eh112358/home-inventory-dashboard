@@ -51,9 +51,16 @@ import tempfile
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Set required environment variables BEFORE importing app/config
+os.environ['SECRET_KEY'] = 'test-secret-key-for-testing'
+os.environ['APP_PASSWORD'] = 'testpassword123'
+
 from app import app
 from database import init_db, get_db
 from config import Config
+
+# Test password constant
+TEST_PASSWORD = 'testpassword123'
 
 
 @pytest.fixture
@@ -80,7 +87,7 @@ def client():
 def authenticated_client(client):
     """Create an authenticated test client."""
     client.post('/api/auth/login',
-                data=json.dumps({'password': 'home123'}),
+                data=json.dumps({'password': TEST_PASSWORD}),
                 content_type='application/json')
     return client
 
@@ -93,7 +100,7 @@ class TestAuthentication:
     def test_login_correct_password(self, client):
         """Test login with correct password returns success."""
         response = client.post('/api/auth/login',
-                               data=json.dumps({'password': 'home123'}),
+                               data=json.dumps({'password': TEST_PASSWORD}),
                                content_type='application/json')
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -468,6 +475,106 @@ class TestStats:
         stats = json.loads(response.data)
         assert stats['total_items'] == len(items)
 
+
+
+# =============================================================================
+# Input Validation Tests
+# =============================================================================
+
+class TestInputValidation:
+    def test_create_consumable_negative_usage_rate(self, authenticated_client):
+        """Test creating consumable with negative usage rate fails."""
+        new_item = {
+            'category_id': 1,
+            'name': 'Test Negative Rate',
+            'unit': 'pieces',
+            'default_usage_rate': -5.0,
+        }
+        response = authenticated_client.post('/api/consumables',
+                                             data=json.dumps(new_item),
+                                             content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+    def test_create_consumable_invalid_usage_rate(self, authenticated_client):
+        """Test creating consumable with non-numeric usage rate fails."""
+        new_item = {
+            'category_id': 1,
+            'name': 'Test Invalid Rate',
+            'unit': 'pieces',
+            'default_usage_rate': 'not-a-number',
+        }
+        response = authenticated_client.post('/api/consumables',
+                                             data=json.dumps(new_item),
+                                             content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+    def test_create_purchase_negative_quantity(self, authenticated_client):
+        """Test creating purchase with negative quantity fails."""
+        response = authenticated_client.get('/api/consumables')
+        items = json.loads(response.data)
+        item_id = items[0]['id']
+
+        purchase_data = {
+            'consumable_type_id': item_id,
+            'quantity': -10.0,
+            'purchase_date': '2024-01-15'
+        }
+        response = authenticated_client.post('/api/purchases',
+                                             data=json.dumps(purchase_data),
+                                             content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+    def test_create_purchase_zero_quantity(self, authenticated_client):
+        """Test creating purchase with zero quantity fails."""
+        response = authenticated_client.get('/api/consumables')
+        items = json.loads(response.data)
+        item_id = items[0]['id']
+
+        purchase_data = {
+            'consumable_type_id': item_id,
+            'quantity': 0,
+            'purchase_date': '2024-01-15'
+        }
+        response = authenticated_client.post('/api/purchases',
+                                             data=json.dumps(purchase_data),
+                                             content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+    def test_update_inventory_negative_quantity(self, authenticated_client):
+        """Test updating inventory with negative quantity fails."""
+        response = authenticated_client.get('/api/consumables')
+        items = json.loads(response.data)
+        item_id = items[0]['id']
+
+        update_data = {'current_quantity': -5.0}
+        response = authenticated_client.put(f'/api/inventory/{item_id}',
+                                            data=json.dumps(update_data),
+                                            content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+    def test_create_consumable_empty_name(self, authenticated_client):
+        """Test creating consumable with empty name fails."""
+        new_item = {
+            'category_id': 1,
+            'name': '   ',
+            'unit': 'pieces',
+        }
+        response = authenticated_client.post('/api/consumables',
+                                             data=json.dumps(new_item),
+                                             content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

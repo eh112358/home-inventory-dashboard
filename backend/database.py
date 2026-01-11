@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import sqlite3
 from config import Config
 
@@ -5,6 +6,20 @@ def get_db():
     conn = sqlite3.connect(Config.DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+@contextmanager
+def get_db_connection():
+    """Context manager for database connections with automatic commit/rollback."""
+    conn = sqlite3.connect(Config.DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def migrate_remove_duplicates(cursor):
     """Remove duplicate consumable_types and rebuild table with UNIQUE constraint."""
@@ -62,23 +77,24 @@ def migrate_remove_duplicates(cursor):
     ''')
     items_to_keep = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
 
-    # Delete duplicate inventory entries (keep only those for first consumable_type)
-    cursor.execute('''
-        DELETE FROM inventory
-        WHERE consumable_type_id NOT IN ({})
-    '''.format(','.join(str(id) for id in items_to_keep.keys())))
+    # Delete duplicate entries using parameterized queries (safe from SQL injection)
+    ids = list(items_to_keep.keys())
+    if ids:
+        placeholders = ','.join('?' * len(ids))
+        cursor.execute(f'''
+            DELETE FROM inventory
+            WHERE consumable_type_id NOT IN ({placeholders})
+        ''', ids)
 
-    # Delete duplicate purchases (keep only those for first consumable_type)
-    cursor.execute('''
-        DELETE FROM purchases
-        WHERE consumable_type_id NOT IN ({})
-    '''.format(','.join(str(id) for id in items_to_keep.keys())))
+        cursor.execute(f'''
+            DELETE FROM purchases
+            WHERE consumable_type_id NOT IN ({placeholders})
+        ''', ids)
 
-    # Delete duplicate usage_log entries
-    cursor.execute('''
-        DELETE FROM usage_log
-        WHERE consumable_type_id NOT IN ({})
-    '''.format(','.join(str(id) for id in items_to_keep.keys())))
+        cursor.execute(f'''
+            DELETE FROM usage_log
+            WHERE consumable_type_id NOT IN ({placeholders})
+        ''', ids)
 
     # Now build ID mapping from old kept IDs to new IDs
     cursor.execute('SELECT id, category_id, name FROM consumable_types_new')

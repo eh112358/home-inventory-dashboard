@@ -5,14 +5,45 @@ from datetime import datetime, timedelta
 import os
 
 from config import Config
-from database import get_db, init_db
+from database import get_db, get_db_connection, init_db
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 app.config.from_object(Config)
 CORS(app, supports_credentials=True)
 
+# Validate configuration before starting
+Config.validate()
+
 # Initialize database on startup
 init_db()
+
+# Validation helpers
+def validate_positive_number(value, field_name, required=True, allow_zero=False):
+    if value is None:
+        if required:
+            return None, f"{field_name} is required"
+        return None, None
+    try:
+        num = float(value)
+        if allow_zero and num < 0:
+            return None, f"{field_name} must be non-negative"
+        if not allow_zero and num <= 0:
+            return None, f"{field_name} must be positive"
+        return num, None
+    except (TypeError, ValueError):
+        return None, f"{field_name} must be a valid number"
+
+def validate_string(value, field_name, required=True, max_length=255):
+    if value is None or (isinstance(value, str) and not value.strip()):
+        if required:
+            return None, f"{field_name} is required"
+        return None, None
+    if not isinstance(value, str):
+        return None, f"{field_name} must be a string"
+    value = value.strip()
+    if len(value) > max_length:
+        return None, f"{field_name} must be at most {max_length} characters"
+    return value, None
 
 # Auth decorator
 def login_required(f):
@@ -97,35 +128,48 @@ def get_consumables():
 @login_required
 def create_consumable():
     data = request.get_json() or {}
-    if not data.get('category_id') or not data.get('name'):
-        return jsonify({'error': 'category_id and name are required'}), 400
-    conn = get_db()
-    cursor = conn.cursor()
+    
+    name, err = validate_string(data.get('name'), 'name')
+    if err:
+        return jsonify({'error': err}), 400
+    
+    category_id, err = validate_positive_number(data.get('category_id'), 'category_id')
+    if err:
+        return jsonify({'error': err}), 400
+    
+    usage_rate = data.get('default_usage_rate', 1.0)
+    if usage_rate is not None:
+        usage_rate, err = validate_positive_number(usage_rate, 'default_usage_rate')
+        if err:
+            return jsonify({'error': err}), 400
+    
+    min_stock = data.get('min_stock_level', 1.0)
+    if min_stock is not None:
+        min_stock, err = validate_positive_number(min_stock, 'min_stock_level', allow_zero=True)
+        if err:
+            return jsonify({'error': err}), 400
 
-    cursor.execute('''
-        INSERT INTO consumable_types
-        (category_id, name, unit, default_usage_rate, usage_rate_period, min_stock_level, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        data['category_id'],
-        data['name'],
-        data.get('unit', 'units'),
-        data.get('default_usage_rate', 1.0),
-        data.get('usage_rate_period', 'week'),
-        data.get('min_stock_level', 1.0),
-        data.get('notes')
-    ))
-
-    consumable_id = cursor.lastrowid
-
-    # Create inventory entry
-    cursor.execute('''
-        INSERT INTO inventory (consumable_type_id, current_quantity)
-        VALUES (?, 0)
-    ''', (consumable_id,))
-
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO consumable_types
+            (category_id, name, unit, default_usage_rate, usage_rate_period, min_stock_level, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            int(category_id),
+            name,
+            data.get('unit', 'units'),
+            usage_rate or 1.0,
+            data.get('usage_rate_period', 'week'),
+            min_stock or 1.0,
+            data.get('notes')
+        ))
+        consumable_id = cursor.lastrowid
+        cursor.execute('''
+            INSERT INTO inventory (consumable_type_id, current_quantity)
+            VALUES (?, 0)
+        ''', (consumable_id,))
+    
     return jsonify({'id': consumable_id, 'success': True}), 201
 
 @app.route('/api/consumables/<int:id>', methods=['PUT'])
@@ -160,14 +204,12 @@ def update_consumable(id):
 @app.route('/api/consumables/<int:id>', methods=['DELETE'])
 @login_required
 def delete_consumable(id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM inventory WHERE consumable_type_id = ?', (id,))
-    cursor.execute('DELETE FROM purchases WHERE consumable_type_id = ?', (id,))
-    cursor.execute('DELETE FROM usage_log WHERE consumable_type_id = ?', (id,))
-    cursor.execute('DELETE FROM consumable_types WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM inventory WHERE consumable_type_id = ?', (id,))
+        cursor.execute('DELETE FROM purchases WHERE consumable_type_id = ?', (id,))
+        cursor.execute('DELETE FROM usage_log WHERE consumable_type_id = ?', (id,))
+        cursor.execute('DELETE FROM consumable_types WHERE id = ?', (id,))
     return jsonify({'success': True})
 
 # Inventory endpoints
@@ -175,21 +217,26 @@ def delete_consumable(id):
 @login_required
 def update_inventory(consumable_id):
     data = request.get_json() or {}
-    conn = get_db()
-    cursor = conn.cursor()
+    
+    current_quantity = data.get('current_quantity', 0)
+    current_quantity, err = validate_positive_number(current_quantity, 'current_quantity', allow_zero=True)
+    if err:
+        return jsonify({'error': err}), 400
+    
+    custom_usage_rate = data.get('custom_usage_rate')
+    if custom_usage_rate is not None:
+        custom_usage_rate, err = validate_positive_number(custom_usage_rate, 'custom_usage_rate', required=False)
+        if err:
+            return jsonify({'error': err}), 400
 
-    cursor.execute('''
-        UPDATE inventory
-        SET current_quantity = ?, custom_usage_rate = ?, last_updated = CURRENT_TIMESTAMP
-        WHERE consumable_type_id = ?
-    ''', (
-        data.get('current_quantity', 0),
-        data.get('custom_usage_rate'),
-        consumable_id
-    ))
-
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE inventory
+            SET current_quantity = ?, custom_usage_rate = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE consumable_type_id = ?
+        ''', (current_quantity, custom_usage_rate, consumable_id))
+    
     return jsonify({'success': True})
 
 # Purchases endpoints
@@ -228,33 +275,40 @@ def get_purchases():
 @login_required
 def create_purchase():
     data = request.get_json() or {}
-    if not data.get('consumable_type_id') or data.get('quantity') is None:
-        return jsonify({'error': 'consumable_type_id and quantity are required'}), 400
-    conn = get_db()
-    cursor = conn.cursor()
+    
+    consumable_type_id, err = validate_positive_number(data.get('consumable_type_id'), 'consumable_type_id')
+    if err:
+        return jsonify({'error': err}), 400
+    
+    quantity, err = validate_positive_number(data.get('quantity'), 'quantity')
+    if err:
+        return jsonify({'error': err}), 400
+    
+    price = data.get('price')
+    if price is not None:
+        price, err = validate_positive_number(price, 'price', required=False, allow_zero=True)
+        if err:
+            return jsonify({'error': err}), 400
 
-    # Add purchase record
-    cursor.execute('''
-        INSERT INTO purchases
-        (consumable_type_id, quantity, purchase_date, price, notes)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (
-        data['consumable_type_id'],
-        data['quantity'],
-        data.get('purchase_date', datetime.now().strftime('%Y-%m-%d')),
-        data.get('price'),
-        data.get('notes')
-    ))
-
-    # Update inventory
-    cursor.execute('''
-        UPDATE inventory
-        SET current_quantity = current_quantity + ?, last_updated = CURRENT_TIMESTAMP
-        WHERE consumable_type_id = ?
-    ''', (data['quantity'], data['consumable_type_id']))
-
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO purchases
+            (consumable_type_id, quantity, purchase_date, price, notes)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            int(consumable_type_id),
+            quantity,
+            data.get('purchase_date', datetime.now().strftime('%Y-%m-%d')),
+            price,
+            data.get('notes')
+        ))
+        cursor.execute('''
+            UPDATE inventory
+            SET current_quantity = current_quantity + ?, last_updated = CURRENT_TIMESTAMP
+            WHERE consumable_type_id = ?
+        ''', (quantity, int(consumable_type_id)))
+    
     return jsonify({'success': True}), 201
 
 @app.route('/api/purchases/<int:id>', methods=['DELETE'])

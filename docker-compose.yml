@@ -1,3 +1,6 @@
+# IMPORTANT: Create a .env file with SECRET_KEY and APP_PASSWORD before running
+# See .env.example for details
+
 services:
   home-inventory:
     build: .
@@ -5,8 +8,8 @@ services:
     ports:
       - "828:5000"
     environment:
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
-      - APP_PASSWORD=${APP_PASSWORD:-home123}
+      - SECRET_KEY=${SECRET_KEY}
+      - APP_PASSWORD=${APP_PASSWORD}
       - DATABASE_PATH=/app/data/inventory.db
     volumes:
       - inventory-data:/app/data

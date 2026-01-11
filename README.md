@@ -13,26 +13,42 @@ A simple Docker-based application for tracking household consumables and knowing
 
 ## Quick Start
 
-1. **Build and run with Docker Compose:**
+1. **Create a `.env` file (required):**
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set your values:
+```env
+SECRET_KEY=your-long-random-secret-key
+APP_PASSWORD=your-secure-password-min-8-chars
+```
+
+Generate a secure secret key:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+2. **Build and run with Docker Compose:**
 
 ```bash
 docker-compose up -d
 ```
 
-2. **Access the application:**
+3. **Access the application:**
 
-Open http://localhost:828 in your browser.
-
-3. **Default password:** `home123`
+Open http://localhost:828 in your browser and log in with your `APP_PASSWORD`.
 
 ## Configuration
 
-Create a `.env` file to customize:
+Environment variables (set in `.env` file):
 
-```env
-SECRET_KEY=your-secret-key-here
-APP_PASSWORD=your-password-here
-```
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SECRET_KEY` | Yes | Secret key for session encryption |
+| `APP_PASSWORD` | Yes | Application password (min 8 characters) |
+| `DATABASE_PATH` | No | Database file path (default: /app/data/inventory.db) |
 
 ## Pre-configured Items
 
@@ -68,5 +84,10 @@ Run locally without Docker:
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# Set required environment variables
+export SECRET_KEY="dev-secret-key-change-in-prod"
+export APP_PASSWORD="devpassword"
+
 python app.py
 ```
