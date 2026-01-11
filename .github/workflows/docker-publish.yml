@@ -2,10 +2,10 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, beta ]
     tags: [ 'v*.*.*' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, beta ]
 
 env:
   REGISTRY: ghcr.io
@@ -57,6 +57,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: test-secret-key-for-ci
+      APP_PASSWORD: testpassword123
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
