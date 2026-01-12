@@ -12,8 +12,5 @@ services:
       - APP_PASSWORD=${APP_PASSWORD}
       - DATABASE_PATH=/app/data/inventory.db
     volumes:
-      - inventory-data:/app/data
+      - ./data:/app/data
     restart: unless-stopped
-
-volumes:
-  inventory-data:
