@@ -103,6 +103,34 @@ header h1 {
     font-size: 1.5rem;
 }
 
+/* Environment badge */
+.env-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    vertical-align: middle;
+    background: var(--gray-500);
+    color: white;
+}
+
+.env-badge.env-dev {
+    background: var(--danger);
+}
+
+.env-badge.env-beta {
+    background: var(--warning);
+    color: var(--gray-800);
+}
+
+.env-badge.env-staging {
+    background: #8b5cf6;
+}
+
 header nav {
     display: flex;
     gap: 0.5rem;

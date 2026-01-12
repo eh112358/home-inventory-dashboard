@@ -49,6 +49,7 @@ Environment variables (set in `.env` file):
 | `SECRET_KEY` | Yes | Secret key for session encryption |
 | `APP_PASSWORD` | Yes | Application password (min 8 characters) |
 | `DATABASE_PATH` | No | Database file path (default: /app/data/inventory.db) |
+| `APP_ENVIRONMENT` | No | Environment indicator: `dev`, `beta`, `staging`, or `production` (default) |
 
 ## Pre-configured Items
 

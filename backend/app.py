@@ -81,6 +81,11 @@ def logout():
 def check_auth():
     return jsonify({'authenticated': session.get('authenticated', False)})
 
+# Environment endpoint (public - used for UI indicators)
+@app.route('/api/environment', methods=['GET'])
+def get_environment():
+    return jsonify({'environment': Config.APP_ENVIRONMENT})
+
 # Categories endpoints
 @app.route('/api/categories', methods=['GET'])
 @login_required

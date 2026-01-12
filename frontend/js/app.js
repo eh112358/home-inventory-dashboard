@@ -30,6 +30,31 @@ let categories = [];
 let consumables = [];
 let currentView = 'dashboard';
 
+// Environment indicator
+async function loadEnvironment() {
+    try {
+        const response = await fetch('/api/environment');
+        const data = await response.json();
+        const env = data.environment?.toLowerCase();
+
+        if (env && env !== 'production') {
+            // Update page title
+            const envLabel = env.toUpperCase();
+            document.title = `[${envLabel}] Home Inventory Manager`;
+
+            // Update header badge
+            const badge = document.getElementById('env-badge');
+            if (badge) {
+                badge.textContent = envLabel;
+                badge.classList.remove('hidden');
+                badge.classList.add(`env-${env}`);
+            }
+        }
+    } catch {
+        // Silently ignore - environment indicator is non-critical
+    }
+}
+
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
@@ -39,6 +64,9 @@ const logoutBtn = document.getElementById('logout-btn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load environment indicator (runs regardless of auth)
+    loadEnvironment();
+
     try {
         const auth = await api('/auth/check');
         if (auth.authenticated) {

@@ -11,6 +11,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - APP_PASSWORD=${APP_PASSWORD}
       - DATABASE_PATH=/app/data/inventory.db
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT:-production}
     volumes:
       - ./data:/app/data
     restart: unless-stopped
