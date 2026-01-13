@@ -103,6 +103,34 @@ header h1 {
     font-size: 1.5rem;
 }
 
+/* Environment badge */
+.env-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    vertical-align: middle;
+    background: var(--gray-500);
+    color: white;
+}
+
+.env-badge.env-dev {
+    background: var(--danger);
+}
+
+.env-badge.env-beta {
+    background: var(--warning);
+    color: var(--gray-800);
+}
+
+.env-badge.env-staging {
+    background: #8b5cf6;
+}
+
 header nav {
     display: flex;
     gap: 0.5rem;
@@ -129,6 +157,7 @@ header nav {
     color: white;
 }
 
+#settings-btn,
 #logout-btn {
     padding: 0.5rem 1rem;
     border: 1px solid var(--gray-300);
@@ -139,6 +168,7 @@ header nav {
     transition: all 0.2s;
 }
 
+#settings-btn:hover,
 #logout-btn:hover {
     background: var(--gray-100);
 }
@@ -599,6 +629,48 @@ main {
 
 .btn-danger:hover {
     background: var(--danger-dark) !important;
+}
+
+/* Settings Modal */
+.settings-section {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.settings-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.settings-section:first-of-type {
+    padding-top: 0;
+}
+
+.settings-section h4 {
+    font-size: 1rem;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.settings-section p {
+    font-size: 0.9rem;
+    color: var(--gray-500);
+    margin-bottom: 1rem;
+}
+
+.settings-section button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+    background: var(--primary);
+    color: white;
+}
+
+.settings-section button:hover {
+    background: var(--primary-dark);
 }
 
 /* Empty States */

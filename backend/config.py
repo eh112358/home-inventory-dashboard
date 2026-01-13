@@ -10,6 +10,7 @@ class Config:
     _default_db = os.path.join(os.path.dirname(__file__), '..', 'data', 'inventory.db')
 
     DATABASE_PATH = os.environ.get('DATABASE_PATH', _default_db)
+    APP_ENVIRONMENT = os.environ.get('APP_ENVIRONMENT', 'production')
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
 

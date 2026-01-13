@@ -49,6 +49,7 @@ Environment variables (set in `.env` file):
 | `SECRET_KEY` | Yes | Secret key for session encryption |
 | `APP_PASSWORD` | Yes | Application password (min 8 characters) |
 | `DATABASE_PATH` | No | Database file path (default: /app/data/inventory.db) |
+| `APP_ENVIRONMENT` | No | Environment indicator: `dev`, `beta`, `staging`, or `production` (default) |
 
 ## Pre-configured Items
 
@@ -67,14 +68,26 @@ The app comes with common household items pre-configured with estimated usage ra
 3. **Purchases** - Log new purchases to update inventory
 4. **Manage Items** - Add/edit/delete consumable types and adjust usage rates
 
-## Data Persistence
+## Data Storage
 
-All data is stored in a SQLite database mounted as a Docker volume (`inventory-data`).
+All data is stored in a SQLite database at `./data/inventory.db`. This directory is mounted directly into the container, so your data persists on your local filesystem.
 
-To backup your data:
-
+**Backup:** Simply copy the database file:
 ```bash
-docker cp home-inventory:/app/data/inventory.db ./backup.db
+cp ./data/inventory.db ./backup.db
+```
+
+**Restore:** Replace the database file and restart the container:
+```bash
+cp ./backup.db ./data/inventory.db
+docker-compose restart
+```
+
+### Migrating from Named Volume
+
+If you previously used the named volume (`inventory-data`), export your data before updating:
+```bash
+docker cp home-inventory:/app/data/inventory.db ./data/inventory.db
 ```
 
 ## Development

@@ -30,6 +30,31 @@ let categories = [];
 let consumables = [];
 let currentView = 'dashboard';
 
+// Environment indicator
+async function loadEnvironment() {
+    try {
+        const response = await fetch('/api/environment');
+        const data = await response.json();
+        const env = data.environment?.toLowerCase();
+
+        if (env && env !== 'production') {
+            // Update page title
+            const envLabel = env.toUpperCase();
+            document.title = `[${envLabel}] Home Inventory Manager`;
+
+            // Update header badge
+            const badge = document.getElementById('env-badge');
+            if (badge) {
+                badge.textContent = envLabel;
+                badge.classList.remove('hidden');
+                badge.classList.add(`env-${env}`);
+            }
+        }
+    } catch {
+        // Silently ignore - environment indicator is non-critical
+    }
+}
+
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
@@ -39,6 +64,9 @@ const logoutBtn = document.getElementById('logout-btn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load environment indicator (runs regardless of auth)
+    loadEnvironment();
+
     try {
         const auth = await api('/auth/check');
         if (auth.authenticated) {
@@ -57,6 +85,12 @@ function setupEventListeners() {
     // Login form
     loginForm.addEventListener('submit', handleLogin);
     logoutBtn.addEventListener('click', handleLogout);
+
+    // Settings modal
+    document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+    document.getElementById('download-backup-btn').addEventListener('click', downloadBackup);
+    document.getElementById('restore-backup-btn').addEventListener('click', triggerRestoreUpload);
+    document.getElementById('restore-file-input').addEventListener('change', handleRestoreUpload);
 
     // Navigation
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -556,4 +590,79 @@ async function deletePurchase(id) {
         await api(`/purchases/${id}`, { method: 'DELETE' });
         await loadPurchases();
     }
+}
+
+// Settings modal functions
+function openSettingsModal() {
+    document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+async function downloadBackup() {
+    try {
+        const response = await fetch('/api/backup/download', { credentials: 'include' });
+
+        if (response.status === 401) {
+            showLogin();
+            return;
+        }
+
+        if (!response.ok) {
+            const error = await response.json();
+            alert('Download failed: ' + (error.error || 'Unknown error'));
+            return;
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `inventory_backup_${new Date().toISOString().slice(0, 10)}.db`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Download failed: ' + err.message);
+    }
+}
+
+function triggerRestoreUpload() {
+    if (confirm('Warning: This will replace ALL current data with the backup file. This cannot be undone. Continue?')) {
+        document.getElementById('restore-file-input').click();
+    }
+}
+
+async function handleRestoreUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/backup/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (response.status === 401) {
+            showLogin();
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Database restored successfully. The page will now reload.');
+            window.location.reload();
+        } else {
+            alert('Restore failed: ' + (result.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Restore failed: ' + err.message);
+    }
+
+    // Reset file input
+    e.target.value = '';
 }
