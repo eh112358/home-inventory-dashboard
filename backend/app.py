@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify, session, send_from_directory
+from flask import Flask, request, jsonify, session, send_from_directory, send_file
 from flask_cors import CORS
 from functools import wraps
 from datetime import datetime, timedelta
 import os
+import shutil
 
 from config import Config
 from database import get_db, get_db_connection, init_db
@@ -85,6 +86,52 @@ def check_auth():
 @app.route('/api/environment', methods=['GET'])
 def get_environment():
     return jsonify({'environment': Config.APP_ENVIRONMENT})
+
+# Backup endpoints
+@app.route('/api/backup/download', methods=['GET'])
+@login_required
+def download_backup():
+    """Download the SQLite database file for backup"""
+    db_path = Config.DATABASE_PATH
+    if not os.path.exists(db_path):
+        return jsonify({'error': 'Database not found'}), 404
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return send_file(
+        db_path,
+        mimetype='application/x-sqlite3',
+        as_attachment=True,
+        download_name=f'inventory_backup_{timestamp}.db'
+    )
+
+@app.route('/api/backup/upload', methods=['POST'])
+@login_required
+def upload_backup():
+    """Upload and replace the SQLite database file"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Basic validation - check it's a SQLite file
+    header = file.read(16)
+    file.seek(0)
+    if header[:16] != b'SQLite format 3\x00':
+        return jsonify({'error': 'Invalid SQLite database file'}), 400
+
+    db_path = Config.DATABASE_PATH
+
+    # Backup current database before replacing
+    if os.path.exists(db_path):
+        backup_path = db_path + '.bak'
+        shutil.copy2(db_path, backup_path)
+
+    # Save uploaded file
+    file.save(db_path)
+
+    return jsonify({'success': True, 'message': 'Database restored successfully'})
 
 # Categories endpoints
 @app.route('/api/categories', methods=['GET'])
