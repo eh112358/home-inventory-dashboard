@@ -35,6 +35,26 @@
             <button id="logout-btn">Logout</button>
         </header>
 
+        <!-- Mobile Navigation -->
+        <nav id="mobile-nav" class="mobile-nav">
+            <button class="mobile-nav-btn active" data-view="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </button>
+            <button class="mobile-nav-btn" data-view="inventory">
+                <span class="nav-icon">📦</span>
+                <span class="nav-label">Inventory</span>
+            </button>
+            <button class="mobile-nav-btn" data-view="purchases">
+                <span class="nav-icon">🛒</span>
+                <span class="nav-label">Purchases</span>
+            </button>
+            <button class="mobile-nav-btn" data-view="manage">
+                <span class="nav-icon">📝</span>
+                <span class="nav-label">Manage</span>
+            </button>
+        </nav>
+
         <!-- Dashboard View -->
         <main id="dashboard-view" class="view">
             <div class="stats-bar">
@@ -100,7 +120,7 @@
 
             <div class="section">
                 <h2>Recent Purchases</h2>
-                <div id="purchases-list" class="purchases-table"></div>
+                <div id="purchases-list"></div>
             </div>
         </main>
 
@@ -234,6 +254,11 @@
             </form>
         </div>
     </div>
+
+    <!-- Floating Action Button (Mobile) -->
+    <button id="fab-add" class="fab" aria-label="Quick add purchase">
+        <span class="fab-icon">+</span>
+    </button>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal hidden">

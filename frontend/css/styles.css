@@ -371,11 +371,10 @@ main {
 }
 
 .list-item {
-    display: grid;
-    grid-template-columns: 1fr 120px 150px 120px 100px;
+    display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: var(--gray-50);
     border: 1px solid var(--gray-200);
     border-radius: 8px;
@@ -385,22 +384,46 @@ main {
     background: var(--gray-100);
 }
 
+.list-item-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+}
+
 .list-item-name {
     font-weight: 500;
+    min-width: 150px;
+}
+
+.list-item-quantity {
+    font-weight: 600;
+    min-width: 100px;
+}
+
+.list-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .list-item-category {
     font-size: 0.85rem;
     color: var(--gray-500);
-}
-
-.list-item-quantity {
-    font-weight: 600;
+    min-width: 120px;
 }
 
 .list-item-usage {
     font-size: 0.9rem;
     color: var(--gray-600);
+    min-width: 60px;
+}
+
+.list-item-min {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    min-width: 70px;
 }
 
 /* Forms */
@@ -509,6 +532,7 @@ main {
 /* Purchases Table */
 .purchases-table {
     overflow-x: auto;
+    display: block;
 }
 
 .purchases-table table {
@@ -684,18 +708,149 @@ main {
     font-size: 1.1rem;
 }
 
-/* Responsive */
+/* Mobile Navigation - hidden on desktop, shown on mobile */
+.mobile-nav {
+    display: none;
+}
+
+.mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: color 0.2s;
+    flex: 1;
+}
+
+.mobile-nav-btn .nav-icon {
+    font-size: 1.25rem;
+}
+
+.mobile-nav-btn .nav-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.mobile-nav-btn.active {
+    color: var(--primary);
+}
+
+.mobile-nav-btn:hover {
+    color: var(--primary);
+}
+
+/* Compact Header (on scroll) - desktop only */
+header.compact {
+    padding: 0.5rem 1rem;
+}
+
+header.compact h1 {
+    font-size: 1.1rem;
+}
+
+header.compact .nav-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+header.compact #settings-btn,
+header.compact #logout-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+/* Floating Action Button (FAB) */
+.fab {
+    display: none;
+}
+
+/* Mobile Card Styles for Lists */
+.purchases-cards {
+    display: none;
+}
+
+.purchase-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.purchase-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.purchase-card-item {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.purchase-card-date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.purchase-card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.purchase-card-quantity {
+    font-size: 1.1rem;
+    color: var(--gray-700);
+}
+
+.purchase-card-price {
+    color: var(--gray-600);
+}
+
+/* Responsive - Mobile */
 @media (max-width: 768px) {
-    header {
-        flex-wrap: wrap;
-        padding: 1rem;
+    /* Mobile nav: fixed at top, always visible */
+    .mobile-nav {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-bottom: 1px solid var(--gray-200);
+        padding: 0.5rem 0;
+        z-index: 100;
+        justify-content: space-around;
     }
 
+    /* Hide desktop nav buttons in header */
     header nav {
-        order: 3;
-        width: 100%;
-        overflow-x: auto;
-        padding-top: 1rem;
+        display: none;
+    }
+
+    /* Header: scrolls with content, not sticky */
+    header {
+        position: relative;
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+        margin-top: 62px; /* Height of fixed mobile nav + spacing */
+    }
+
+    header h1 {
+        flex: 1;
+        font-size: 1.1rem;
+    }
+
+    #settings-btn,
+    #logout-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
     }
 
     main {
@@ -715,5 +870,170 @@ main {
     .form-inline select,
     .form-inline input {
         width: 100%;
+    }
+
+    /* FAB - visible on mobile */
+    .fab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        bottom: 80px;
+        right: 1.25rem;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--success);
+        color: white;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        z-index: 99;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .fab:active {
+        transform: scale(0.95);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .fab-icon {
+        font-size: 1.75rem;
+        font-weight: 300;
+        line-height: 1;
+    }
+
+    /* Compact card-based list items on mobile */
+    .list-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .list-item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .list-item-name {
+        font-size: 1rem;
+        font-weight: 600;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .list-item-quantity {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--gray-700);
+        white-space: nowrap;
+    }
+
+    .list-item-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .list-item-category {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    .list-item-usage,
+    .list-item-min {
+        font-size: 0.7rem;
+        background: var(--gray-100);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        color: var(--gray-600);
+    }
+
+    .list-item .btn-edit {
+        margin-left: auto;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    /* Purchases cards on mobile */
+    .purchases-table {
+        display: none;
+    }
+
+    .purchases-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Collapsible category groups */
+    .category-group {
+        margin-bottom: 1rem;
+    }
+
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--gray-100);
+        border-radius: 8px;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.2s;
+    }
+
+    .category-header:active {
+        background: var(--gray-200);
+    }
+
+    .category-header .toggle-icon {
+        font-size: 0.75rem;
+        transition: transform 0.2s;
+        color: var(--gray-500);
+    }
+
+    .category-header.collapsed .toggle-icon {
+        transform: rotate(-90deg);
+    }
+
+    .category-header .category-title {
+        flex: 1;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .category-header .category-count {
+        font-size: 0.85rem;
+        color: var(--gray-500);
+        background: var(--gray-200);
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+    }
+
+    .category-content {
+        margin-top: 0.75rem;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, opacity 0.2s;
+    }
+
+    .category-content.collapsed {
+        max-height: 0 !important;
+        opacity: 0;
+        margin-top: 0;
+    }
+
+    .category-content .items-grid {
+        gap: 0.75rem;
     }
 }
