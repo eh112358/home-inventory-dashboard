@@ -29,6 +29,7 @@ async function api(endpoint, options = {}) {
 let categories = [];
 let consumables = [];
 let currentView = 'dashboard';
+let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories') || '{}');
 
 // Environment indicator
 async function loadEnvironment() {
@@ -140,6 +141,9 @@ function setupEventListeners() {
 
     // Set default purchase date to today
     document.getElementById('purchase-date').valueAsDate = new Date();
+
+    // FAB (Floating Action Button)
+    document.getElementById('fab-add').addEventListener('click', openFabPurchase);
 }
 
 // Auth functions
@@ -267,8 +271,8 @@ async function loadDashboard() {
     const needsPurchase = filteredItems.filter(i => i.needs_purchase);
     const lowStock = filteredItems.filter(i => i.low_stock);
 
-    renderItemsGrid('needs-purchase-list', needsPurchase, true);
-    renderItemsGrid('low-stock-list', lowStock, false);
+    renderItemsGridGrouped('needs-purchase-list', needsPurchase, true);
+    renderItemsGridGrouped('low-stock-list', lowStock, false);
 }
 
 async function loadInventory() {
@@ -355,14 +359,16 @@ function renderInventoryList() {
         const usageRate = item.custom_usage_rate || item.default_usage_rate;
         return `
             <div class="list-item">
-                <div>
+                <div class="list-item-row">
                     <div class="list-item-name">${escapeHtml(item.name)}</div>
-                    <div class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</div>
+                    <div class="list-item-quantity">${item.current_quantity || 0} ${escapeHtml(item.unit)}</div>
                 </div>
-                <div class="list-item-quantity">${item.current_quantity || 0} ${escapeHtml(item.unit)}</div>
-                <div class="list-item-usage">${usageRate} per ${escapeHtml(item.usage_rate_period)}</div>
-                <div>Min: ${item.min_stock_level}</div>
-                <button class="btn-edit" data-id="${item.id}">Edit</button>
+                <div class="list-item-meta">
+                    <span class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</span>
+                    <span class="list-item-usage">${usageRate}/${escapeHtml(item.usage_rate_period.charAt(0))}</span>
+                    <span class="list-item-min">Min: ${item.min_stock_level}</span>
+                    <button class="btn-edit" data-id="${item.id}">Edit</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -405,29 +411,35 @@ function renderPurchasesTable(purchases) {
         return;
     }
 
+    // Render both table (desktop) and cards (mobile) - CSS controls visibility
     container.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${purchases.map(p => `
+        <div class="purchases-table">
+            <table>
+                <thead>
                     <tr>
-                        <td>${escapeHtml(p.purchase_date)}</td>
-                        <td>${escapeHtml(p.consumable_name)}</td>
-                        <td>${p.quantity} ${escapeHtml(p.unit)}</td>
-                        <td>${(p.price !== null && p.price !== undefined) ? '$' + Number(p.price).toFixed(2) : '-'}</td>
-                        <td><button class="btn-delete" data-id="${p.id}">Delete</button></td>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Action</th>
                     </tr>
-                `).join('')}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    ${purchases.map(p => `
+                        <tr>
+                            <td>${escapeHtml(p.purchase_date)}</td>
+                            <td>${escapeHtml(p.consumable_name)}</td>
+                            <td>${p.quantity} ${escapeHtml(p.unit)}</td>
+                            <td>${(p.price !== null && p.price !== undefined) ? '$' + Number(p.price).toFixed(2) : '-'}</td>
+                            <td><button class="btn-delete" data-id="${p.id}">Delete</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        <div class="purchases-cards">
+            ${renderPurchasesCards(purchases)}
+        </div>
     `;
 
     container.querySelectorAll('.btn-delete').forEach(btn => {
@@ -447,14 +459,16 @@ function renderManageList() {
         const usageRate = item.custom_usage_rate || item.default_usage_rate;
         return `
             <div class="list-item">
-                <div>
+                <div class="list-item-row">
                     <div class="list-item-name">${escapeHtml(item.name)}</div>
-                    <div class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</div>
+                    <div class="list-item-quantity">${item.current_quantity || 0} ${escapeHtml(item.unit)}</div>
                 </div>
-                <div class="list-item-quantity">${item.current_quantity || 0} ${escapeHtml(item.unit)}</div>
-                <div class="list-item-usage">${usageRate} per ${escapeHtml(item.usage_rate_period)}</div>
-                <div>Min: ${item.min_stock_level}</div>
-                <button class="btn-edit" data-id="${item.id}">Edit</button>
+                <div class="list-item-meta">
+                    <span class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</span>
+                    <span class="list-item-usage">${usageRate}/${escapeHtml(item.usage_rate_period.charAt(0))}</span>
+                    <span class="list-item-min">Min: ${item.min_stock_level}</span>
+                    <button class="btn-edit" data-id="${item.id}">Edit</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -686,4 +700,179 @@ async function handleRestoreUpload(e) {
 
     // Reset file input
     e.target.value = '';
+}
+
+// FAB - Open purchase selector
+async function openFabPurchase() {
+    // Make sure we have items loaded
+    if (consumables.length === 0) {
+        consumables = await api('/consumables');
+    }
+
+    if (consumables.length === 0) {
+        alert('No items available. Add items first in Manage Items.');
+        return;
+    }
+
+    // For simplicity, navigate to purchases view
+    switchView('purchases');
+    // Focus on the item select
+    setTimeout(() => {
+        document.getElementById('purchase-item').focus();
+    }, 100);
+}
+
+// Render purchases as cards (for mobile)
+function renderPurchasesCards(purchases) {
+    return purchases.map(p => `
+        <div class="purchase-card">
+            <div class="purchase-card-header">
+                <span class="purchase-card-item">${escapeHtml(p.consumable_name)}</span>
+                <span class="purchase-card-date">${escapeHtml(p.purchase_date)}</span>
+            </div>
+            <div class="purchase-card-details">
+                <span class="purchase-card-quantity">${p.quantity} ${escapeHtml(p.unit)}</span>
+                <span class="purchase-card-price">${(p.price !== null && p.price !== undefined) ? '$' + Number(p.price).toFixed(2) : ''}</span>
+                <button class="btn-delete" data-id="${p.id}">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Group items by category
+function groupItemsByCategory(items) {
+    const grouped = {};
+    items.forEach(item => {
+        const key = item.category_id;
+        if (!grouped[key]) {
+            grouped[key] = {
+                id: item.category_id,
+                name: item.category_name,
+                icon: item.category_icon,
+                items: []
+            };
+        }
+        grouped[key].items.push(item);
+    });
+    return Object.values(grouped);
+}
+
+// Toggle category collapse state
+function toggleCategory(categoryId, containerId) {
+    const key = `${containerId}-${categoryId}`;
+    collapsedCategories[key] = !collapsedCategories[key];
+    localStorage.setItem('collapsedCategories', JSON.stringify(collapsedCategories));
+
+    const header = document.querySelector(`[data-category-id="${categoryId}"][data-container="${containerId}"]`);
+    const content = document.getElementById(`category-content-${containerId}-${categoryId}`);
+
+    if (header && content) {
+        if (collapsedCategories[key]) {
+            header.classList.add('collapsed');
+            content.classList.add('collapsed');
+        } else {
+            header.classList.remove('collapsed');
+            content.classList.remove('collapsed');
+            // Reset max-height for smooth animation
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }
+    }
+}
+
+// Check if mobile viewport
+function isMobileView() {
+    return window.innerWidth <= 768;
+}
+
+// Render items grid with category grouping (mobile) or flat (desktop)
+function renderItemsGridGrouped(containerId, items, showUrgent) {
+    const container = document.getElementById(containerId);
+
+    if (items.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No items to display</p></div>';
+        return;
+    }
+
+    // On mobile, group by category
+    if (isMobileView()) {
+        const grouped = groupItemsByCategory(items);
+
+        container.innerHTML = grouped.map(group => {
+            const key = `${containerId}-${group.id}`;
+            const isCollapsed = collapsedCategories[key];
+            const collapsedClass = isCollapsed ? 'collapsed' : '';
+
+            return `
+                <div class="category-group">
+                    <div class="category-header ${collapsedClass}"
+                         data-category-id="${group.id}"
+                         data-container="${containerId}">
+                        <span class="toggle-icon">▼</span>
+                        <span class="category-title">${escapeHtml(group.icon)} ${escapeHtml(group.name)}</span>
+                        <span class="category-count">${group.items.length}</span>
+                    </div>
+                    <div id="category-content-${containerId}-${group.id}"
+                         class="category-content ${collapsedClass}"
+                         style="${!isCollapsed ? 'max-height: 2000px;' : ''}">
+                        <div class="items-grid">
+                            ${renderItemCards(group.items, showUrgent)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add collapse toggle listeners
+        container.querySelectorAll('.category-header').forEach(header => {
+            header.addEventListener('click', () => {
+                toggleCategory(header.dataset.categoryId, header.dataset.container);
+            });
+        });
+    } else {
+        // Desktop: render cards directly (container already has items-grid class)
+        container.innerHTML = renderItemCards(items, showUrgent);
+    }
+
+    // Add event listeners for buttons
+    container.querySelectorAll('.btn-purchase').forEach(btn => {
+        btn.addEventListener('click', () => openQuickPurchase(parseInt(btn.dataset.id), btn.dataset.name));
+    });
+    container.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
+    });
+}
+
+// Render individual item cards HTML
+function renderItemCards(items, showUrgent) {
+    return items.map(item => {
+        const urgentClass = item.needs_purchase ? 'urgent' : (item.low_stock ? 'warning' : '');
+        const daysClass = (item.days_until_empty === null || item.days_until_empty <= 0) ? 'urgent' : (item.days_until_empty <= 7 ? 'warning' : '');
+        const daysText = item.days_until_empty === null ? 'N/A'
+            : item.days_until_empty <= 0 ? 'Empty!'
+            : `${item.days_until_empty}d left`;
+
+        return `
+            <div class="item-card ${urgentClass}">
+                <div class="item-header">
+                    <div>
+                        <div class="item-name">${escapeHtml(item.name)}</div>
+                        <div class="item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</div>
+                    </div>
+                </div>
+                <div class="item-stats">
+                    <div>
+                        <span class="item-quantity">${item.current_quantity || 0}</span>
+                        <span class="item-unit">${escapeHtml(item.unit)}</span>
+                    </div>
+                    <span class="item-days ${daysClass}">${daysText}</span>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-purchase" data-id="${item.id}" data-name="${escapeHtml(item.name)}">
+                        + Purchase
+                    </button>
+                    <button class="btn-edit" data-id="${item.id}">Edit</button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
