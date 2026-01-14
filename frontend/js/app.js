@@ -92,9 +92,24 @@ function setupEventListeners() {
     document.getElementById('restore-backup-btn').addEventListener('click', triggerRestoreUpload);
     document.getElementById('restore-file-input').addEventListener('change', handleRestoreUpload);
 
-    // Navigation
+    // Navigation (top)
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+
+    // Navigation (mobile)
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+
+    // Compact header on scroll (desktop only)
+    window.addEventListener('scroll', () => {
+        const header = document.querySelector('header');
+        if (window.scrollY > 50) {
+            header.classList.add('compact');
+        } else {
+            header.classList.remove('compact');
+        }
     });
 
     // Category filters
@@ -173,7 +188,13 @@ async function switchView(view) {
     document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
     document.getElementById(`${view}-view`).classList.remove('hidden');
 
+    // Update top nav active state
     document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+    });
+
+    // Update mobile nav active state
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === view);
     });
 
