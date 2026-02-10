@@ -195,8 +195,7 @@ class TestConsumables:
             'name': 'Test Item',
             'unit': 'pieces',
             'default_usage_rate': 5.0,
-            'usage_rate_period': 'week',
-            'min_stock_level': 3.0
+                        'min_stock_level': 3.0
         }
         response = authenticated_client.post('/api/consumables',
                                              data=json.dumps(new_item),
@@ -220,8 +219,7 @@ class TestConsumables:
             'name': 'Update Test Item',
             'unit': 'pieces',
             'default_usage_rate': 5.0,
-            'usage_rate_period': 'week',
-            'min_stock_level': 3.0
+                        'min_stock_level': 3.0
         }
         response = authenticated_client.post('/api/consumables',
                                              data=json.dumps(new_item),
@@ -234,8 +232,7 @@ class TestConsumables:
             'name': 'Updated Name',
             'unit': 'boxes',
             'default_usage_rate': 10.0,
-            'usage_rate_period': 'month',
-            'min_stock_level': 5.0
+                        'min_stock_level': 5.0
         }
         response = authenticated_client.put(f'/api/consumables/{item_id}',
                                             data=json.dumps(updated_item),
@@ -258,8 +255,7 @@ class TestConsumables:
             'name': 'Delete Test Item',
             'unit': 'pieces',
             'default_usage_rate': 5.0,
-            'usage_rate_period': 'week',
-            'min_stock_level': 3.0
+                        'min_stock_level': 3.0
         }
         response = authenticated_client.post('/api/consumables',
                                              data=json.dumps(new_item),

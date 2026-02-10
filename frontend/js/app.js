@@ -368,7 +368,7 @@ function renderInventoryList() {
                 </div>
                 <div class="list-item-meta">
                     <span class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</span>
-                    <span class="list-item-usage">${usageRate}/${escapeHtml(item.usage_rate_period.charAt(0))}</span>
+                    <span class="list-item-usage">${usageRate}/wk</span>
                     <span class="list-item-min">Min: ${item.min_stock_level}</span>
                     <button class="btn-edit" data-id="${item.id}">Edit</button>
                 </div>
@@ -406,6 +406,10 @@ function populatePurchaseSelect() {
     });
 }
 
+function formatPrice(price) {
+    return (price !== null && price !== undefined) ? '$' + Number(price).toFixed(2) : '-';
+}
+
 function renderPurchasesTable(purchases) {
     const container = document.getElementById('purchases-list');
 
@@ -414,34 +418,25 @@ function renderPurchasesTable(purchases) {
         return;
     }
 
-    // Render both table (desktop) and cards (mobile) - CSS controls visibility
+    // Single responsive grid layout - CSS handles desktop vs mobile display
     container.innerHTML = `
-        <div class="purchases-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Item</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${purchases.map(p => `
-                        <tr>
-                            <td>${escapeHtml(p.purchase_date)}</td>
-                            <td>${escapeHtml(p.consumable_name)}</td>
-                            <td>${p.quantity} ${escapeHtml(p.unit)}</td>
-                            <td>${(p.price !== null && p.price !== undefined) ? '$' + Number(p.price).toFixed(2) : '-'}</td>
-                            <td><button class="btn-delete" data-id="${p.id}">Delete</button></td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-        <div class="purchases-cards">
-            ${renderPurchasesCards(purchases)}
+        <div class="purchases-grid">
+            <div class="purchases-header">
+                <span>Date</span>
+                <span>Item</span>
+                <span>Qty</span>
+                <span>Price</span>
+                <span></span>
+            </div>
+            ${purchases.map(p => `
+                <div class="purchase-item">
+                    <span class="purchase-date">${escapeHtml(p.purchase_date)}</span>
+                    <span class="purchase-name">${escapeHtml(p.consumable_name)}</span>
+                    <span class="purchase-qty">${p.quantity} ${escapeHtml(p.unit)}</span>
+                    <span class="purchase-price">${formatPrice(p.price)}</span>
+                    <button class="btn-delete" data-id="${p.id}">Delete</button>
+                </div>
+            `).join('')}
         </div>
     `;
 
@@ -468,7 +463,7 @@ function renderManageList() {
                 </div>
                 <div class="list-item-meta">
                     <span class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</span>
-                    <span class="list-item-usage">${usageRate}/${escapeHtml(item.usage_rate_period.charAt(0))}</span>
+                    <span class="list-item-usage">${usageRate}/wk</span>
                     <span class="list-item-min">Min: ${item.min_stock_level}</span>
                     <button class="btn-edit" data-id="${item.id}">Edit</button>
                 </div>
@@ -514,7 +509,6 @@ async function handleAddItem(e) {
         name: document.getElementById('new-item-name').value,
         unit: document.getElementById('new-item-unit').value,
         default_usage_rate: parseFloat(document.getElementById('new-item-usage-rate').value),
-        usage_rate_period: document.getElementById('new-item-usage-period').value,
         min_stock_level: parseFloat(document.getElementById('new-item-min-stock').value),
         notes: document.getElementById('new-item-notes').value
     };
@@ -539,7 +533,6 @@ async function handleEditItem(e) {
         name: document.getElementById('edit-item-name').value,
         unit: document.getElementById('edit-item-unit').value,
         default_usage_rate: parseFloat(document.getElementById('edit-item-usage-rate').value),
-        usage_rate_period: document.getElementById('edit-item-usage-period').value,
         min_stock_level: parseFloat(document.getElementById('edit-item-min-stock').value),
         notes: document.getElementById('edit-item-notes').value
     };
@@ -606,7 +599,6 @@ async function openEditModal(id) {
     document.getElementById('edit-item-name').value = item.name;
     document.getElementById('edit-item-unit').value = item.unit;
     document.getElementById('edit-item-usage-rate').value = item.default_usage_rate;
-    document.getElementById('edit-item-usage-period').value = item.usage_rate_period;
     document.getElementById('edit-item-custom-rate').value = item.custom_usage_rate || '';
     document.getElementById('edit-item-quantity').value = item.current_quantity || 0;
     document.getElementById('edit-item-min-stock').value = item.min_stock_level;
@@ -723,23 +715,6 @@ async function openFabPurchase() {
     setTimeout(() => {
         document.getElementById('purchase-item').focus();
     }, 100);
-}
-
-// Render purchases as cards (for mobile)
-function renderPurchasesCards(purchases) {
-    return purchases.map(p => `
-        <div class="purchase-card">
-            <div class="purchase-card-header">
-                <span class="purchase-card-item">${escapeHtml(p.consumable_name)}</span>
-                <span class="purchase-card-date">${escapeHtml(p.purchase_date)}</span>
-            </div>
-            <div class="purchase-card-details">
-                <span class="purchase-card-quantity">${p.quantity} ${escapeHtml(p.unit)}</span>
-                <span class="purchase-card-price">${(p.price !== null && p.price !== undefined) ? '$' + Number(p.price).toFixed(2) : ''}</span>
-                <button class="btn-delete" data-id="${p.id}">Delete</button>
-            </div>
-        </div>
-    `).join('');
 }
 
 // Group items by category

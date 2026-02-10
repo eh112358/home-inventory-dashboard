@@ -18,6 +18,16 @@ Config.validate()
 # Initialize database on startup
 init_db()
 
+# Dashboard cache - invalidated when inventory/purchases change
+_dashboard_cache = {
+    'data': None,
+    'valid': False
+}
+
+def invalidate_dashboard_cache():
+    """Call this when inventory or purchases change."""
+    _dashboard_cache['valid'] = False
+
 # Validation helpers
 def validate_positive_number(value, field_name, required=True, allow_zero=False):
     if value is None:
@@ -212,7 +222,7 @@ def create_consumable():
             name,
             data.get('unit', 'units'),
             usage_rate or 1.0,
-            data.get('usage_rate_period', 'week'),
+            'week',  # Standardized to weekly
             min_stock or 1.0,
             data.get('notes')
         ))
@@ -221,7 +231,8 @@ def create_consumable():
             INSERT INTO inventory (consumable_type_id, current_quantity)
             VALUES (?, 0)
         ''', (consumable_id,))
-    
+
+    invalidate_dashboard_cache()
     return jsonify({'id': consumable_id, 'success': True}), 201
 
 @app.route('/api/consumables/<int:id>', methods=['PUT'])
@@ -243,7 +254,7 @@ def update_consumable(id):
         data['name'],
         data.get('unit', 'units'),
         data.get('default_usage_rate', 1.0),
-        data.get('usage_rate_period', 'week'),
+        'week',  # Standardized to weekly
         data.get('min_stock_level', 1.0),
         data.get('notes'),
         id
@@ -251,6 +262,7 @@ def update_consumable(id):
 
     conn.commit()
     conn.close()
+    invalidate_dashboard_cache()
     return jsonify({'success': True})
 
 @app.route('/api/consumables/<int:id>', methods=['DELETE'])
@@ -262,6 +274,7 @@ def delete_consumable(id):
         cursor.execute('DELETE FROM purchases WHERE consumable_type_id = ?', (id,))
         cursor.execute('DELETE FROM usage_log WHERE consumable_type_id = ?', (id,))
         cursor.execute('DELETE FROM consumable_types WHERE id = ?', (id,))
+    invalidate_dashboard_cache()
     return jsonify({'success': True})
 
 # Inventory endpoints
@@ -288,7 +301,8 @@ def update_inventory(consumable_id):
             SET current_quantity = ?, custom_usage_rate = ?, last_updated = CURRENT_TIMESTAMP
             WHERE consumable_type_id = ?
         ''', (current_quantity, custom_usage_rate, consumable_id))
-    
+
+    invalidate_dashboard_cache()
     return jsonify({'success': True})
 
 # Purchases endpoints
@@ -360,7 +374,8 @@ def create_purchase():
             SET current_quantity = current_quantity + ?, last_updated = CURRENT_TIMESTAMP
             WHERE consumable_type_id = ?
         ''', (quantity, int(consumable_type_id)))
-    
+
+    invalidate_dashboard_cache()
     return jsonify({'success': True}), 201
 
 @app.route('/api/purchases/<int:id>', methods=['DELETE'])
@@ -383,12 +398,17 @@ def delete_purchase(id):
     cursor.execute('DELETE FROM purchases WHERE id = ?', (id,))
     conn.commit()
     conn.close()
+    invalidate_dashboard_cache()
     return jsonify({'success': True})
 
 # Dashboard endpoint - items that need to be purchased
 @app.route('/api/dashboard', methods=['GET'])
 @login_required
 def get_dashboard():
+    # Return cached data if valid
+    if _dashboard_cache['valid'] and _dashboard_cache['data'] is not None:
+        return jsonify(_dashboard_cache['data'])
+
     conn = get_db()
     cursor = conn.cursor()
 
@@ -408,20 +428,10 @@ def get_dashboard():
     for row in cursor.fetchall():
         item = dict(row)
 
-        # Calculate days until empty
+        # Calculate days until empty (all rates are weekly)
         usage_rate = item['effective_usage_rate'] or item['default_usage_rate']
         current_qty = item['current_quantity'] or 0
-        period = item['usage_rate_period']
-
-        # Convert usage rate to daily rate
-        if period == 'day':
-            daily_rate = usage_rate
-        elif period == 'week':
-            daily_rate = usage_rate / 7
-        elif period == 'month':
-            daily_rate = usage_rate / 30
-        else:
-            daily_rate = usage_rate / 7  # default to week
+        daily_rate = usage_rate / 7  # Weekly rate converted to daily
 
         if daily_rate > 0:
             days_until_empty = current_qty / daily_rate
@@ -435,25 +445,12 @@ def get_dashboard():
         items.append(item)
 
     conn.close()
+
+    # Cache the result
+    _dashboard_cache['data'] = items
+    _dashboard_cache['valid'] = True
+
     return jsonify(items)
-
-# Usage rate update endpoint
-@app.route('/api/usage-rate/<int:consumable_id>', methods=['PUT'])
-@login_required
-def update_usage_rate(consumable_id):
-    data = request.get_json() or {}
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        UPDATE inventory
-        SET custom_usage_rate = ?, last_updated = CURRENT_TIMESTAMP
-        WHERE consumable_type_id = ?
-    ''', (data.get('usage_rate'), consumable_id))
-
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
 
 # Stats endpoint
 @app.route('/api/stats', methods=['GET'])

@@ -529,37 +529,56 @@ main {
     background: var(--primary-dark);
 }
 
-/* Purchases Table */
-.purchases-table {
-    overflow-x: auto;
-    display: block;
+/* Purchases Grid - Responsive layout */
+.purchases-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
-.purchases-table table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.purchases-table th,
-.purchases-table td {
+.purchases-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px 80px 80px;
+    gap: 0.5rem;
     padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.purchases-table th {
     background: var(--gray-50);
     font-weight: 600;
     color: var(--gray-600);
     font-size: 0.85rem;
     text-transform: uppercase;
+    border-bottom: 1px solid var(--gray-200);
 }
 
-.purchases-table tr:hover td {
+.purchase-item {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px 80px 80px;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.purchase-item:hover {
     background: var(--gray-50);
 }
 
-.purchases-table .btn-delete {
+.purchase-name {
+    font-weight: 500;
+}
+
+.purchase-date {
+    color: var(--gray-600);
+}
+
+.purchase-qty {
+    color: var(--gray-700);
+}
+
+.purchase-price {
+    color: var(--gray-600);
+}
+
+.purchases-grid .btn-delete {
     padding: 0.25rem 0.75rem;
     background: var(--danger);
     color: white;
@@ -567,9 +586,10 @@ main {
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.8rem;
+    justify-self: end;
 }
 
-.purchases-table .btn-delete:hover {
+.purchases-grid .btn-delete:hover {
     background: var(--danger-dark);
 }
 
@@ -822,49 +842,6 @@ header.compact #logout-btn {
     display: none;
 }
 
-/* Mobile Card Styles for Lists */
-.purchases-cards {
-    display: none;
-}
-
-.purchase-card {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    padding: 1rem;
-}
-
-.purchase-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.5rem;
-}
-
-.purchase-card-item {
-    font-weight: 600;
-    font-size: 1.05rem;
-}
-
-.purchase-card-date {
-    font-size: 0.85rem;
-    color: var(--gray-500);
-}
-
-.purchase-card-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.purchase-card-quantity {
-    font-size: 1.1rem;
-    color: var(--gray-700);
-}
-
-.purchase-card-price {
-    color: var(--gray-600);
-}
 
 /* Responsive - Mobile */
 @media (max-width: 768px) {
@@ -1018,15 +995,59 @@ header.compact #logout-btn {
         font-size: 0.75rem;
     }
 
-    /* Purchases cards on mobile */
-    .purchases-table {
+    /* Purchases grid on mobile - card layout */
+    .purchases-header {
         display: none;
     }
 
-    .purchases-cards {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+    .purchase-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 0.25rem 0.5rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+    }
+
+    .purchase-item:hover {
+        background: var(--gray-100);
+    }
+
+    .purchase-name {
+        grid-column: 1;
+        grid-row: 1;
+        font-weight: 600;
+        font-size: 1.05rem;
+    }
+
+    .purchase-date {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 0.85rem;
+        text-align: right;
+    }
+
+    .purchase-qty {
+        grid-column: 1;
+        grid-row: 2;
+        font-size: 1.1rem;
+    }
+
+    .purchase-price {
+        grid-column: 2;
+        grid-row: 2;
+        text-align: right;
+    }
+
+    .purchases-grid .btn-delete {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        margin-top: 0.5rem;
+        width: 100%;
+        padding: 0.5rem;
     }
 
     /* Collapsible category groups */
