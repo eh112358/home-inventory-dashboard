@@ -1,12 +1,19 @@
 # Implementation Plan: IMPROVEMENTS.md Items 6-9
 
+## Status: ✅ COMPLETED
+
+**Commit:** cc4dc12
+**Branch:** dev
+**Date:** 2026-02-09
+**Tests:** 29/29 passing
+
 ## Overview
 
 This plan covers four backend infrastructure simplifications:
-- **Item 6:** Standardize on Weekly Usage Rates
-- **Item 7:** Consolidate Purchase Rendering
-- **Item 8:** Remove Unused API Endpoint
-- **Item 9:** Simplify Dashboard Calculations (with caching)
+- **Item 6:** ✅ Standardize on Weekly Usage Rates
+- **Item 7:** ✅ Consolidate Purchase Rendering
+- **Item 8:** ✅ Remove Unused API Endpoint
+- **Item 9:** ✅ Simplify Dashboard Calculations (with caching)
 
 ---
 
@@ -344,10 +351,21 @@ For Item 6 (database changes):
 
 ## Testing Checklist
 
-- [ ] All existing tests pass
+- [x] All existing tests pass (29/29)
 - [ ] Dashboard displays correctly
 - [ ] Items can be added/edited/deleted
 - [ ] Purchases can be logged/deleted
 - [ ] Mobile layout works correctly
 - [ ] No console errors in browser
 - [ ] Docker container builds and runs
+
+## Implementation Summary
+
+| Item | Status | Changes |
+|------|--------|---------|
+| 8: Remove unused endpoint | ✅ Done | Deleted `/api/usage-rate/<id>` from app.py |
+| 9: Dashboard caching | ✅ Done | Added `_dashboard_cache` + `invalidate_dashboard_cache()` |
+| 7: Purchase rendering | ✅ Done | Single CSS Grid layout, deleted `renderPurchasesCards()` |
+| 6: Weekly rates only | ✅ Done | Removed period selectors, simplified calculations |
+
+**Net code reduction:** ~22 lines
