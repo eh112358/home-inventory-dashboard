@@ -126,6 +126,20 @@
 
         <!-- Manage Items View -->
         <main id="manage-view" class="view hidden">
+            <!-- Category Management Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Categories</h2>
+                </div>
+                <div class="category-add-form">
+                    <button type="button" id="category-icon-btn" class="emoji-picker-btn" title="Pick an icon">📦</button>
+                    <input type="text" id="new-category-name" placeholder="New category name" maxlength="50">
+                    <button type="button" id="add-category-btn">Add Category</button>
+                </div>
+                <div id="emoji-picker" class="emoji-picker hidden"></div>
+                <div id="categories-list" class="categories-list"></div>
+            </div>
+
             <div class="section">
                 <div class="section-header">
                     <h2>Add New Item</h2>
@@ -266,6 +280,28 @@
                 <input type="file" id="restore-file-input" accept=".db" style="display: none;">
                 <button id="restore-backup-btn" type="button" class="btn-danger">Restore from Backup</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div id="edit-category-modal" class="modal hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>Edit Category</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="edit-category-form">
+                <input type="hidden" id="edit-category-id">
+                <div class="category-add-form">
+                    <button type="button" id="edit-category-icon-btn" class="emoji-picker-btn" title="Pick an icon">📦</button>
+                    <input type="text" id="edit-category-name" placeholder="Category name" maxlength="50" required>
+                </div>
+                <div id="edit-emoji-picker" class="emoji-picker hidden"></div>
+                <div class="modal-actions">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" class="btn-danger" id="delete-category-btn">Delete</button>
+                </div>
+            </form>
         </div>
     </div>
 

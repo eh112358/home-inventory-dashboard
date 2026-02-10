@@ -167,6 +167,150 @@ class TestCategories:
         response = client.get('/api/categories')
         assert response.status_code == 401
 
+    def test_create_category(self, authenticated_client):
+        """Test creating a new category."""
+        new_cat = {'name': 'Electronics', 'icon': '🔌'}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        assert response.status_code == 201
+        data = json.loads(response.data)
+        assert data['success'] is True
+        assert data['name'] == 'Electronics'
+        assert data['icon'] == '🔌'
+        assert 'id' in data
+
+        # Verify it appears in the list
+        response = authenticated_client.get('/api/categories')
+        cats = json.loads(response.data)
+        cat_names = [c['name'] for c in cats]
+        assert 'Electronics' in cat_names
+
+    def test_create_category_default_icon(self, authenticated_client):
+        """Test creating a category without icon uses default."""
+        new_cat = {'name': 'Automotive'}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        assert response.status_code == 201
+        data = json.loads(response.data)
+        assert data['icon'] == '📦'
+
+    def test_create_category_duplicate_name(self, authenticated_client):
+        """Test creating a category with duplicate name fails."""
+        new_cat = {'name': 'Household'}  # Already exists as default
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        assert response.status_code == 409
+        data = json.loads(response.data)
+        assert 'already exists' in data['error']
+
+    def test_create_category_duplicate_name_case_insensitive(self, authenticated_client):
+        """Test duplicate name check is case-insensitive."""
+        new_cat = {'name': 'HOUSEHOLD'}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        assert response.status_code == 409
+
+    def test_create_category_empty_name(self, authenticated_client):
+        """Test creating a category with empty name fails."""
+        new_cat = {'name': '   '}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        assert response.status_code == 400
+
+    def test_update_category(self, authenticated_client):
+        """Test updating a category name and icon."""
+        # Create a category first
+        new_cat = {'name': 'Test Update Cat', 'icon': '🧪'}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        cat_id = json.loads(response.data)['id']
+
+        # Update it
+        updated = {'name': 'Updated Cat Name', 'icon': '🎯'}
+        response = authenticated_client.put(f'/api/categories/{cat_id}',
+                                            data=json.dumps(updated),
+                                            content_type='application/json')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data['success'] is True
+        assert data['name'] == 'Updated Cat Name'
+        assert data['icon'] == '🎯'
+
+    def test_update_category_not_found(self, authenticated_client):
+        """Test updating a non-existent category returns 404."""
+        updated = {'name': 'Ghost', 'icon': '👻'}
+        response = authenticated_client.put('/api/categories/9999',
+                                            data=json.dumps(updated),
+                                            content_type='application/json')
+        assert response.status_code == 404
+
+    def test_update_category_duplicate_name(self, authenticated_client):
+        """Test updating category to duplicate name fails."""
+        # Try to rename a new category to an existing name
+        new_cat = {'name': 'Temp Cat'}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        cat_id = json.loads(response.data)['id']
+
+        # Try to rename to "Household" which already exists
+        updated = {'name': 'Household'}
+        response = authenticated_client.put(f'/api/categories/{cat_id}',
+                                            data=json.dumps(updated),
+                                            content_type='application/json')
+        assert response.status_code == 409
+
+    def test_delete_empty_category(self, authenticated_client):
+        """Test deleting a category with no items succeeds."""
+        # Create a category
+        new_cat = {'name': 'To Delete'}
+        response = authenticated_client.post('/api/categories',
+                                             data=json.dumps(new_cat),
+                                             content_type='application/json')
+        cat_id = json.loads(response.data)['id']
+
+        # Delete it
+        response = authenticated_client.delete(f'/api/categories/{cat_id}')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data['success'] is True
+
+        # Verify it's gone
+        response = authenticated_client.get('/api/categories')
+        cats = json.loads(response.data)
+        assert not any(c['id'] == cat_id for c in cats)
+
+    def test_delete_category_with_items_blocked(self, authenticated_client):
+        """Test deleting a category that has items is blocked."""
+        # Household has default items, so deleting it should fail
+        response = authenticated_client.get('/api/categories')
+        cats = json.loads(response.data)
+        household = next(c for c in cats if c['name'] == 'Household')
+
+        response = authenticated_client.delete(f'/api/categories/{household["id"]}')
+        assert response.status_code == 409
+        data = json.loads(response.data)
+        assert 'Cannot delete' in data['error']
+        assert 'item(s)' in data['error']
+
+    def test_delete_category_not_found(self, authenticated_client):
+        """Test deleting a non-existent category returns 404."""
+        response = authenticated_client.delete('/api/categories/9999')
+        assert response.status_code == 404
+
+    def test_create_category_requires_auth(self, client):
+        """Test creating a category requires authentication."""
+        response = client.post('/api/categories',
+                               data=json.dumps({'name': 'NoAuth'}),
+                               content_type='application/json')
+        assert response.status_code == 401
+
 
 # =============================================================================
 # Consumables Tests

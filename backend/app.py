@@ -154,6 +154,97 @@ def get_categories():
     conn.close()
     return jsonify(categories)
 
+@app.route('/api/categories', methods=['POST'])
+@login_required
+def create_category():
+    data = request.get_json() or {}
+
+    name, err = validate_string(data.get('name'), 'name', max_length=50)
+    if err:
+        return jsonify({'error': err}), 400
+
+    icon = data.get('icon', '📦')
+    if not isinstance(icon, str) or len(icon) > 10:
+        icon = '📦'
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Check for duplicate name (case-insensitive)
+        cursor.execute('SELECT id FROM categories WHERE LOWER(name) = LOWER(?)', (name,))
+        if cursor.fetchone():
+            return jsonify({'error': f'A category named "{name}" already exists'}), 409
+
+        cursor.execute(
+            'INSERT INTO categories (name, icon) VALUES (?, ?)',
+            (name, icon)
+        )
+        category_id = cursor.lastrowid
+
+    return jsonify({'id': category_id, 'name': name, 'icon': icon, 'success': True}), 201
+
+@app.route('/api/categories/<int:id>', methods=['PUT'])
+@login_required
+def update_category(id):
+    data = request.get_json() or {}
+
+    name, err = validate_string(data.get('name'), 'name', max_length=50)
+    if err:
+        return jsonify({'error': err}), 400
+
+    icon = data.get('icon', '📦')
+    if not isinstance(icon, str) or len(icon) > 10:
+        icon = '📦'
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Check category exists
+        cursor.execute('SELECT id FROM categories WHERE id = ?', (id,))
+        if not cursor.fetchone():
+            return jsonify({'error': 'Category not found'}), 404
+
+        # Check for duplicate name (case-insensitive, excluding this category)
+        cursor.execute(
+            'SELECT id FROM categories WHERE LOWER(name) = LOWER(?) AND id != ?',
+            (name, id)
+        )
+        if cursor.fetchone():
+            return jsonify({'error': f'A category named "{name}" already exists'}), 409
+
+        cursor.execute(
+            'UPDATE categories SET name = ?, icon = ? WHERE id = ?',
+            (name, icon, id)
+        )
+
+    invalidate_dashboard_cache()
+    return jsonify({'id': id, 'name': name, 'icon': icon, 'success': True})
+
+@app.route('/api/categories/<int:id>', methods=['DELETE'])
+@login_required
+def delete_category(id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Check category exists
+        cursor.execute('SELECT name FROM categories WHERE id = ?', (id,))
+        category = cursor.fetchone()
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+
+        # Block deletion if items exist in this category
+        cursor.execute(
+            'SELECT COUNT(*) as count FROM consumable_types WHERE category_id = ?',
+            (id,)
+        )
+        item_count = cursor.fetchone()['count']
+        if item_count > 0:
+            return jsonify({
+                'error': f'Cannot delete category "{category["name"]}": {item_count} item(s) are using this category.'
+            }), 409
+
+        cursor.execute('DELETE FROM categories WHERE id = ?', (id,))
+
+    invalidate_dashboard_cache()
+    return jsonify({'success': True})
+
 # Consumable types endpoints
 @app.route('/api/consumables', methods=['GET'])
 @login_required

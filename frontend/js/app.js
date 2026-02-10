@@ -30,6 +30,15 @@ let categories = [];
 let consumables = [];
 let currentView = 'dashboard';
 let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories') || '{}');
+let selectedCategoryIcon = '📦';
+let editCategoryIcon = '📦';
+
+// Emoji choices for category icons
+const CATEGORY_EMOJIS = [
+    '📦', '🏠', '🍎', '🧴', '🧹', '🧺', '🧽', '🧻',
+    '💊', '🩹', '🧸', '🎮', '📚', '✏️', '🔧', '🔌',
+    '🚗', '🌱', '🐕', '🐈', '👶', '👕', '🧼', '🛒'
+];
 
 // Environment indicator
 async function loadEnvironment() {
@@ -147,6 +156,25 @@ function setupEventListeners() {
 
     // FAB (Floating Action Button)
     document.getElementById('fab-add').addEventListener('click', openFabPurchase);
+
+    // Category management
+    document.getElementById('add-category-btn').addEventListener('click', handleAddCategory);
+    document.getElementById('category-icon-btn').addEventListener('click', () => toggleEmojiPicker('emoji-picker', 'category-icon-btn', 'add'));
+    document.getElementById('edit-category-form').addEventListener('submit', handleEditCategory);
+    document.getElementById('edit-category-icon-btn').addEventListener('click', () => toggleEmojiPicker('edit-emoji-picker', 'edit-category-icon-btn', 'edit'));
+    document.getElementById('delete-category-btn').addEventListener('click', handleDeleteCategory);
+
+    // Allow pressing Enter in category name input to add
+    document.getElementById('new-category-name').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAddCategory();
+        }
+    });
+
+    // Initialize emoji pickers
+    initEmojiPicker('emoji-picker', 'add');
+    initEmojiPicker('edit-emoji-picker', 'edit');
 }
 
 // Auth functions
@@ -298,6 +326,7 @@ async function loadManageItems() {
     const endpoint = categoryFilter ? `/consumables?category_id=${categoryFilter}` : '/consumables';
     consumables = await api(endpoint);
     renderManageList();
+    renderCategoryList();
 }
 
 // Render functions
@@ -853,6 +882,203 @@ function renderItemCards(items, showUrgent) {
             </div>
         `;
     }).join('');
+}
+
+// Category management functions
+function initEmojiPicker(pickerId, mode) {
+    const picker = document.getElementById(pickerId);
+    picker.innerHTML = CATEGORY_EMOJIS.map(emoji =>
+        `<button type="button" data-emoji="${emoji}">${emoji}</button>`
+    ).join('');
+
+    picker.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const emoji = btn.dataset.emoji;
+            if (mode === 'add') {
+                selectedCategoryIcon = emoji;
+                document.getElementById('category-icon-btn').textContent = emoji;
+            } else {
+                editCategoryIcon = emoji;
+                document.getElementById('edit-category-icon-btn').textContent = emoji;
+            }
+            // Highlight selected
+            picker.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            picker.classList.add('hidden');
+        });
+    });
+}
+
+function toggleEmojiPicker(pickerId, buttonId, mode) {
+    const picker = document.getElementById(pickerId);
+    picker.classList.toggle('hidden');
+
+    // Highlight the currently selected emoji
+    if (!picker.classList.contains('hidden')) {
+        const currentIcon = mode === 'add' ? selectedCategoryIcon : editCategoryIcon;
+        picker.querySelectorAll('button').forEach(btn => {
+            btn.classList.toggle('selected', btn.dataset.emoji === currentIcon);
+        });
+    }
+}
+
+async function renderCategoryList() {
+    const container = document.getElementById('categories-list');
+
+    if (categories.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No categories</p></div>';
+        return;
+    }
+
+    // Fetch all consumables to get accurate counts (not affected by filter)
+    const allConsumables = await api('/consumables');
+    const itemCounts = {};
+    allConsumables.forEach(item => {
+        itemCounts[item.category_id] = (itemCounts[item.category_id] || 0) + 1;
+    });
+
+    container.innerHTML = categories.map(cat => {
+        const count = itemCounts[cat.id] || 0;
+        return `
+            <div class="category-list-item">
+                <span class="category-list-icon">${escapeHtml(cat.icon)}</span>
+                <span class="category-list-name">${escapeHtml(cat.name)}</span>
+                <span class="category-list-count">${count} item${count !== 1 ? 's' : ''}</span>
+                <div class="category-list-actions">
+                    <button class="btn-edit" data-id="${cat.id}">Edit</button>
+                    <button class="btn-delete-cat" data-id="${cat.id}">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => openEditCategoryModal(parseInt(btn.dataset.id)));
+    });
+    container.querySelectorAll('.btn-delete-cat').forEach(btn => {
+        btn.addEventListener('click', () => quickDeleteCategory(parseInt(btn.dataset.id)));
+    });
+}
+
+async function handleAddCategory() {
+    const nameInput = document.getElementById('new-category-name');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert('Please enter a category name.');
+        nameInput.focus();
+        return;
+    }
+
+    try {
+        const result = await api('/categories', {
+            method: 'POST',
+            body: JSON.stringify({ name: name, icon: selectedCategoryIcon })
+        });
+
+        if (result.success) {
+            nameInput.value = '';
+            selectedCategoryIcon = '📦';
+            document.getElementById('category-icon-btn').textContent = '📦';
+            document.getElementById('emoji-picker').classList.add('hidden');
+            await loadCategories();
+            renderCategoryList();
+        }
+    } catch (err) {
+        // The api() helper already handles 401; other errors bubble up here
+    }
+}
+
+function openEditCategoryModal(id) {
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+
+    document.getElementById('edit-category-id').value = cat.id;
+    document.getElementById('edit-category-name').value = cat.name;
+    editCategoryIcon = cat.icon || '📦';
+    document.getElementById('edit-category-icon-btn').textContent = editCategoryIcon;
+    document.getElementById('edit-emoji-picker').classList.add('hidden');
+    document.getElementById('edit-category-modal').classList.remove('hidden');
+}
+
+async function handleEditCategory(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('edit-category-id').value;
+    const name = document.getElementById('edit-category-name').value.trim();
+
+    if (!name) {
+        alert('Category name is required.');
+        return;
+    }
+
+    try {
+        const result = await api(`/categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name: name, icon: editCategoryIcon })
+        });
+
+        if (result.success) {
+            document.getElementById('edit-category-modal').classList.add('hidden');
+            await loadCategories();
+            renderCategoryList();
+        }
+    } catch (err) {
+        // Error handled by api() helper
+    }
+}
+
+async function handleDeleteCategory() {
+    const id = document.getElementById('edit-category-id').value;
+    const name = document.getElementById('edit-category-name').value;
+
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+        const response = await fetch(`/api/categories/${id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            document.getElementById('edit-category-modal').classList.add('hidden');
+            await loadCategories();
+            renderCategoryList();
+        } else {
+            alert(result.error || 'Failed to delete category.');
+        }
+    } catch (err) {
+        alert('Failed to delete category: ' + err.message);
+    }
+}
+
+async function quickDeleteCategory(id) {
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+
+    if (!confirm(`Are you sure you want to delete "${cat.name}"?`)) return;
+
+    try {
+        const response = await fetch(`/api/categories/${id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            await loadCategories();
+            renderCategoryList();
+        } else {
+            alert(result.error || 'Failed to delete category.');
+        }
+    } catch (err) {
+        alert('Failed to delete category: ' + err.message);
+    }
 }
 
 // Easter egg - floating hearts animation
