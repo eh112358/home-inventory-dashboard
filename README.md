@@ -1,15 +1,51 @@
 # Home Inventory Manager
 
-A simple Docker-based application for tracking household consumables and knowing when to restock.
+A simple, self-hosted web application for tracking household consumables and knowing when to restock. Mobile-first design optimized for quick use on your phone.
 
 ## Features
 
-- Dashboard showing items that need to be purchased
-- Track consumables across categories: Household, Food & Pantry, Personal Care
-- Log purchases and automatically update inventory
-- Usage rate estimation based on a family of 5 (2 adults, 3 young children)
-- Editable usage rates per item
-- Simple password protection
+### Dashboard
+- Items that need to be purchased (below minimum stock level)
+- Low-stock warnings (less than 7 days supply remaining)
+- "Days until empty" calculations based on weekly usage rates
+- Quick stats: items needing purchase, total tracked, recent purchases (7 days)
+- Items grouped by category with collapsible sections on mobile
+
+### Inventory
+- View current stock levels for all items
+- List view (default) and grid/table view toggle (desktop)
+- Filter by category
+
+### Purchases
+- Log purchases with quantity, date, and optional price
+- Automatic inventory quantity updates on purchase
+- Purchase history with deletion
+
+### Category Management
+- Create custom categories with emoji icons (24 emoji choices)
+- Edit category name and icon
+- Delete categories (blocked if items still assigned)
+- Compact list with 3-dot overflow menu for Edit/Delete actions
+- Add categories via FAB (mobile) or "+ Add" button (desktop)
+
+### Item Management
+- Add/edit/delete consumable items
+- Configure: name, unit, weekly usage rate, minimum stock level, notes
+- Per-item custom usage rate override
+
+### Mobile-First UI
+- Bottom-sheet modals on mobile, centered overlays on desktop
+- Fixed top navigation bar with 4 views
+- Floating Action Button (FAB): context-aware (add category on Manage view, quick purchase on others)
+- Toast notifications instead of browser alerts
+- Custom confirmation dialogs
+- 44px minimum touch targets throughout
+
+### Other
+- Simple password-based authentication
+- Database backup download and restore via Settings
+- Environment indicator badge (dev/beta/staging)
+- Easter egg
 
 ## Quick Start
 
@@ -51,33 +87,25 @@ Environment variables (set in `.env` file):
 | `DATABASE_PATH` | No | Database file path (default: /app/data/inventory.db) |
 | `APP_ENVIRONMENT` | No | Environment indicator: `dev`, `beta`, `staging`, or `production` (default) |
 
-## Pre-configured Items
-
-The app comes with common household items pre-configured with estimated usage rates for a family of 5:
-
-**Household:** Toilet Paper, Paper Towels, Dish Soap, Laundry Detergent, Trash Bags, Diapers, Baby Wipes, etc.
-
-**Food & Pantry:** Milk, Bread, Eggs, Butter, Cereal, Juice Boxes, Snacks, etc.
-
-**Personal Care:** Toothpaste, Shampoo, Body Wash, Hand Soap, Lotion, Sunscreen, Band-Aids, etc.
-
 ## Usage
 
-1. **Dashboard** - See what needs to be purchased and items running low
-2. **Inventory** - View current stock levels for all items
-3. **Purchases** - Log new purchases to update inventory
-4. **Manage Items** - Add/edit/delete consumable types and adjust usage rates
+1. **Dashboard** - See what needs to be purchased and items running low. Tap an item to quick-purchase or edit.
+2. **Inventory** - View current stock levels. Toggle between list and grid views on desktop.
+3. **Purchases** - Log new purchases to update inventory. View and delete purchase history.
+4. **Manage Items** - Create/edit/delete categories and items. Adjust usage rates and stock levels.
+
+On mobile, use the floating **+** button at the bottom-right for quick actions (add purchase or add category depending on which view you're on).
 
 ## Data Storage
 
 All data is stored in a SQLite database at `./data/inventory.db`. This directory is mounted directly into the container, so your data persists on your local filesystem.
 
-**Backup:** Simply copy the database file:
+**Backup:** Use the Settings modal in the app to download a backup, or copy the file directly:
 ```bash
 cp ./data/inventory.db ./backup.db
 ```
 
-**Restore:** Replace the database file and restart the container:
+**Restore:** Use the Settings modal to upload a backup file, or replace the database file and restart:
 ```bash
 cp ./backup.db ./data/inventory.db
 docker-compose restart
@@ -104,3 +132,20 @@ export APP_PASSWORD="devpassword"
 
 python app.py
 ```
+
+Run tests:
+```bash
+cd backend
+pytest tests/ -v
+```
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Backend | Flask 3.0.0 (Python 3.11) |
+| Database | SQLite3 |
+| Frontend | Vanilla HTML/CSS/JavaScript (SPA) |
+| Server | Gunicorn (production) |
+| Containerization | Docker + Docker Compose |
+| CI/CD | GitHub Actions |

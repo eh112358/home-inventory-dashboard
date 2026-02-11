@@ -5,7 +5,7 @@
 | # | Feature | Scope | Complexity | Status |
 |---|---------|-------|------------|--------|
 | 1 | Voice input for purchases | Frontend only | Medium | To do |
-| 2 | Inventory table/grid view toggle | Frontend only | Low | To do |
+| 2 | Inventory table/grid view toggle | Frontend only | Low | ✅ Done |
 | 3 | Multi-edit mode (quantity + usage rates) | Full stack | Medium | To do |
 | 4 | Add custom categories | Full stack | Low | ✅ Done |
 | 5 | Edit/delete existing categories | Full stack | Low | ✅ Done |
@@ -49,27 +49,9 @@ const patterns = [
 
 ---
 
-## Feature 2: Inventory Table/Grid View Toggle
+## Feature 2: ✅ Inventory Table/Grid View Toggle — COMPLETED
 
-### Implementation
-- Add toggle buttons (list/grid icons) to Inventory view header
-- Grid view: table-like layout with columns (Name, Category, Qty, Usage, Min, Actions)
-- Store preference in `localStorage`
-- Hide toggle on mobile (always list view)
-
-### Files to Modify
-- `frontend/index.html` - Add toggle buttons in Inventory section header
-- `frontend/js/app.js` - Add `inventoryViewMode` state, `renderInventoryGrid()` function
-- `frontend/css/styles.css` - Grid view styles, toggle button styles
-
-### Grid Layout
-```css
-.grid-header, .grid-row {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1fr 0.8fr 0.8fr 80px;
-    gap: 1rem;
-}
-```
+**Implemented:** Toggle buttons (list/grid icons) in inventory filter bar, visible on desktop only (hidden on mobile where list view is always used). Grid view renders items in a CSS Grid table with aligned columns (Name, Category, Qty, Usage, Min, Edit). Preference persists in localStorage via `inventoryViewMode`. New functions: `renderInventoryGrid()`, `renderInventoryView()`, `setInventoryViewMode()`. (Commit: 2d2f63a)
 
 ---
 
@@ -118,7 +100,7 @@ Validation:
 ## Implementation Order
 
 1. ~~**Features 4 & 5 (Categories)** - Foundation, no dependencies~~ ✅ Done
-2. **Feature 2 (Grid Toggle)** - Simple, frontend only
+2. ~~**Feature 2 (Grid Toggle)** - Simple, frontend only~~ ✅ Done
 3. **Feature 3 (Multi-Edit)** - More complex, builds on grid patterns
 4. **Feature 1 (Voice Input)** - Independent, can parallel others
 
@@ -136,8 +118,8 @@ cd backend && pytest tests/ -v
 ### Manual Testing Checklist
 - [ ] Voice: Mic button appears, speech recognized, item matched, form filled
 - [ ] Voice: Graceful handling when browser doesn't support Web Speech API
-- [ ] Grid: Toggle persists across page reloads
-- [ ] Grid: Both views render correctly, edit works in both
+- [x] Grid: Toggle persists across page reloads
+- [x] Grid: Both views render correctly, edit works in both
 - [ ] Multi-Edit: Changes highlighted, Save All updates all modified items
 - [ ] Multi-Edit: Cancel discards changes
 - [x] Categories: Create new category, appears in all dropdowns
@@ -154,9 +136,9 @@ cd backend && pytest tests/ -v
 |------|---------|
 | `backend/app.py` | ✅ +3 category endpoints (POST/PUT/DELETE), remaining: +1 batch inventory |
 | `backend/tests/test_api.py` | ✅ +category CRUD tests, remaining: +batch inventory tests |
-| `frontend/index.html` | ✅ +category section/modals, remaining: +voice button, +toggle buttons |
-| `frontend/js/app.js` | ✅ +category CRUD/emoji picker, remaining: +VoiceInput, +view toggle, +multi-edit |
-| `frontend/css/styles.css` | ✅ +category/emoji styles, remaining: +voice, +grid toggle, +multi-edit styles |
+| `frontend/index.html` | ✅ +category section/modals, ✅ +toggle buttons, remaining: +voice button |
+| `frontend/js/app.js` | ✅ +category CRUD/emoji picker, ✅ +view toggle, remaining: +VoiceInput, +multi-edit |
+| `frontend/css/styles.css` | ✅ +category/emoji styles, ✅ +grid toggle, remaining: +voice, +multi-edit styles |
 
 ---
 
