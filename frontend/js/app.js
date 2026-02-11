@@ -33,6 +33,7 @@ let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories')
 let selectedCategoryIcon = '📦';
 let editCategoryIcon = '📦';
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'list';
+let activeCategoryDropdown = null;
 
 // Emoji choices for category icons
 const CATEGORY_EMOJIS = [
@@ -212,8 +213,8 @@ function setupEventListeners() {
     // Set default purchase date to today
     document.getElementById('purchase-date').valueAsDate = new Date();
 
-    // FAB (Floating Action Button)
-    document.getElementById('fab-add').addEventListener('click', openFabPurchase);
+    // FAB (Floating Action Button) — context-aware
+    document.getElementById('fab-add').addEventListener('click', handleFabClick);
 
     // Category management
     document.getElementById('add-category-btn').addEventListener('click', handleAddCategory);
@@ -221,6 +222,7 @@ function setupEventListeners() {
     document.getElementById('edit-category-form').addEventListener('submit', handleEditCategory);
     document.getElementById('edit-category-icon-btn').addEventListener('click', () => toggleEmojiPicker('edit-emoji-picker', 'edit-category-icon-btn', 'edit'));
     document.getElementById('delete-category-btn').addEventListener('click', handleDeleteCategory);
+    document.getElementById('add-category-desktop-btn').addEventListener('click', openAddCategoryModal);
 
     // Allow pressing Enter in category name input to add
     document.getElementById('new-category-name').addEventListener('keydown', (e) => {
@@ -229,6 +231,9 @@ function setupEventListeners() {
             handleAddCategory();
         }
     });
+
+    // Close category dropdown on any outside click
+    document.addEventListener('click', closeCategoryDropdown);
 
     // Initialize emoji pickers
     initEmojiPicker('emoji-picker', 'add');
@@ -285,6 +290,10 @@ async function switchView(view) {
     document.querySelectorAll('.view-nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === view);
     });
+
+    // Update FAB label based on current view
+    const fab = document.getElementById('fab-add');
+    fab.setAttribute('aria-label', view === 'manage' ? 'Add new category' : 'Quick add purchase');
 
     switch (view) {
         case 'dashboard':
@@ -971,24 +980,96 @@ async function renderCategoryList() {
     container.innerHTML = categories.map(cat => {
         const count = itemCounts[cat.id] || 0;
         return `
-            <div class="category-list-item">
+            <div class="category-list-item" data-category-row-id="${cat.id}">
                 <span class="category-list-icon">${escapeHtml(cat.icon)}</span>
                 <span class="category-list-name">${escapeHtml(cat.name)}</span>
                 <span class="category-list-count">${count} item${count !== 1 ? 's' : ''}</span>
-                <div class="category-list-actions">
-                    <button class="btn-edit" data-id="${cat.id}">Edit</button>
-                    <button class="btn-delete-cat" data-id="${cat.id}">Delete</button>
-                </div>
+                <button class="category-menu-btn" data-id="${cat.id}">&#8942;</button>
             </div>
         `;
     }).join('');
 
-    container.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', () => openEditCategoryModal(parseInt(btn.dataset.id)));
+    container.querySelectorAll('.category-menu-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openCategoryDropdown(parseInt(btn.dataset.id), btn);
+        });
     });
-    container.querySelectorAll('.btn-delete-cat').forEach(btn => {
-        btn.addEventListener('click', () => quickDeleteCategory(parseInt(btn.dataset.id)));
+}
+
+function closeCategoryDropdown() {
+    if (activeCategoryDropdown) {
+        activeCategoryDropdown.remove();
+        activeCategoryDropdown = null;
+    }
+}
+
+function openCategoryDropdown(categoryId, anchorButton) {
+    // If same button clicked, toggle off
+    if (activeCategoryDropdown && activeCategoryDropdown.dataset.categoryId == categoryId) {
+        closeCategoryDropdown();
+        return;
+    }
+
+    // Close any existing dropdown first
+    closeCategoryDropdown();
+
+    // Create dropdown menu
+    const dropdown = document.createElement('div');
+    dropdown.className = 'category-dropdown';
+    dropdown.dataset.categoryId = categoryId;
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'category-dropdown-item';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeCategoryDropdown();
+        openEditCategoryModal(categoryId);
     });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'category-dropdown-item danger';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeCategoryDropdown();
+        quickDeleteCategory(categoryId);
+    });
+
+    dropdown.appendChild(editBtn);
+    dropdown.appendChild(deleteBtn);
+
+    // Append to the category row so it positions relative to it
+    const row = anchorButton.closest('.category-list-item');
+    row.appendChild(dropdown);
+    activeCategoryDropdown = dropdown;
+}
+
+// FAB — context-aware: opens add-category modal on manage view, purchase on others
+async function handleFabClick() {
+    if (currentView === 'manage') {
+        openAddCategoryModal();
+    } else {
+        await openFabPurchase();
+    }
+}
+
+// Open the Add Category modal
+function openAddCategoryModal() {
+    // Reset form state
+    selectedCategoryIcon = '📦';
+    document.getElementById('category-icon-btn').textContent = '📦';
+    document.getElementById('new-category-name').value = '';
+    document.getElementById('emoji-picker').classList.add('hidden');
+
+    // Show the modal
+    document.getElementById('add-category-modal').classList.remove('hidden');
+
+    // Focus the name input
+    setTimeout(() => {
+        document.getElementById('new-category-name').focus();
+    }, 100);
 }
 
 async function handleAddCategory() {
@@ -1012,6 +1093,8 @@ async function handleAddCategory() {
             selectedCategoryIcon = '📦';
             document.getElementById('category-icon-btn').textContent = '📦';
             document.getElementById('emoji-picker').classList.add('hidden');
+            closeModal('add-category-modal');
+            showToast('Category added!', 'success');
             await loadCategories();
             renderCategoryList();
         }

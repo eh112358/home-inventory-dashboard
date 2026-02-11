@@ -134,13 +134,8 @@
             <div class="section">
                 <div class="section-header">
                     <h2>Categories</h2>
+                    <button id="add-category-desktop-btn" class="btn-add-category-desktop">+ Add</button>
                 </div>
-                <div class="category-add-form">
-                    <button type="button" id="category-icon-btn" class="emoji-picker-btn" title="Pick an icon">📦</button>
-                    <input type="text" id="new-category-name" placeholder="New category name" maxlength="50">
-                    <button type="button" id="add-category-btn">Add Category</button>
-                </div>
-                <div id="emoji-picker" class="emoji-picker hidden"></div>
                 <div id="categories-list" class="categories-list"></div>
             </div>
 
@@ -306,6 +301,24 @@
                     <button type="button" class="btn-danger" id="delete-category-btn">Delete</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div id="add-category-modal" class="modal hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>Add Category</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="category-add-form">
+                <button type="button" id="category-icon-btn" class="emoji-picker-btn" title="Pick an icon">📦</button>
+                <input type="text" id="new-category-name" placeholder="New category name" maxlength="50">
+            </div>
+            <div id="emoji-picker" class="emoji-picker hidden"></div>
+            <div class="modal-actions">
+                <button type="button" id="add-category-btn">Add Category</button>
+            </div>
         </div>
     </div>
 
