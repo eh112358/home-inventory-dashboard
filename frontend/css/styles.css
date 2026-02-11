@@ -977,13 +977,14 @@ main {
 }
 
 .category-list-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.25rem 0.75rem;
     padding: 0.75rem 1rem;
     background: var(--gray-50);
     border: 1px solid var(--gray-200);
     border-radius: 8px;
+    align-items: center;
 }
 
 .category-list-item:hover {
@@ -1012,6 +1013,9 @@ main {
 .category-list-actions {
     display: flex;
     gap: 0.5rem;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-top: 0.25rem;
 }
 
 .category-list-actions button {
@@ -1583,6 +1587,19 @@ main {
         max-height: none !important;
         opacity: 1;
         margin-top: 0;
+    }
+
+    /* Category cards: single-row on desktop */
+    .category-list-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .category-list-actions {
+        grid-column: auto;
+        padding-top: 0;
+        justify-content: initial;
     }
 
     /* FAB: hidden on desktop */
