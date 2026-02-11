@@ -14,7 +14,7 @@ A self-hosted web application for tracking household consumables and determining
 ## Goals
 
 ### Primary Goal
-Provide a simple, reliable way to track household consumable inventory and know when to purchase more before running out.
+Provide a simple, reliable way to track household consumable inventory and know when to purchase more before running out, via a mobile device web browser.
 
 ### Success Criteria
 - Never run out of essential household items unexpectedly
@@ -222,6 +222,7 @@ The following are explicitly **not** goals for this project:
 | Users | Single user, single household |
 | Budget | Personal project, no recurring costs |
 | Availability | Home network only (not publicly accessible) |
+| Mobile Experience | Mobile browser main access vector, desktop browsers experience is secondary |
 
 ---
 

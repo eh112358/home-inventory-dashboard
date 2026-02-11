@@ -32,6 +32,7 @@ let currentView = 'dashboard';
 let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories') || '{}');
 let selectedCategoryIcon = '📦';
 let editCategoryIcon = '📦';
+let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'list';
 
 // Emoji choices for category icons
 const CATEGORY_EMOJIS = [
@@ -105,13 +106,8 @@ function setupEventListeners() {
     // Easter egg
     document.getElementById('easter-egg-trigger').addEventListener('click', triggerHeartsAnimation);
 
-    // Navigation (top)
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchView(btn.dataset.view));
-    });
-
-    // Navigation (mobile)
-    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+    // Navigation (desktop + mobile)
+    document.querySelectorAll('.view-nav-btn').forEach(btn => {
         btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
@@ -129,6 +125,10 @@ function setupEventListeners() {
     document.getElementById('dashboard-category-filter').addEventListener('change', loadDashboard);
     document.getElementById('inventory-category-filter').addEventListener('change', loadInventory);
     document.getElementById('manage-category-filter').addEventListener('change', loadManageItems);
+
+    // Inventory view toggle
+    document.getElementById('view-list-btn').addEventListener('click', () => setInventoryViewMode('list'));
+    document.getElementById('view-grid-btn').addEventListener('click', () => setInventoryViewMode('grid'));
 
     // Forms
     document.getElementById('purchase-form').addEventListener('submit', handleNewPurchase);
@@ -223,13 +223,8 @@ async function switchView(view) {
     document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
     document.getElementById(`${view}-view`).classList.remove('hidden');
 
-    // Update top nav active state
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.view === view);
-    });
-
-    // Update mobile nav active state
-    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+    // Update nav active state (desktop + mobile)
+    document.querySelectorAll('.view-nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === view);
     });
 
@@ -238,6 +233,9 @@ async function switchView(view) {
             await loadDashboard();
             break;
         case 'inventory':
+            // Sync toggle button active states with stored preference
+            document.getElementById('view-list-btn').classList.toggle('active', inventoryViewMode === 'list');
+            document.getElementById('view-grid-btn').classList.toggle('active', inventoryViewMode === 'grid');
             await loadInventory();
             break;
         case 'purchases':
@@ -310,7 +308,7 @@ async function loadInventory() {
     const categoryFilter = document.getElementById('inventory-category-filter').value;
     const endpoint = categoryFilter ? `/consumables?category_id=${categoryFilter}` : '/consumables';
     consumables = await api(endpoint);
-    renderInventoryList();
+    renderInventoryView();
 }
 
 async function loadPurchases() {
@@ -325,65 +323,16 @@ async function loadManageItems() {
     const categoryFilter = document.getElementById('manage-category-filter').value;
     const endpoint = categoryFilter ? `/consumables?category_id=${categoryFilter}` : '/consumables';
     consumables = await api(endpoint);
-    renderManageList();
+    renderItemList('manage-items-list', 'No items to manage');
     renderCategoryList();
 }
 
 // Render functions
-function renderItemsGrid(containerId, items, showUrgent) {
+function renderItemList(containerId, emptyMessage) {
     const container = document.getElementById(containerId);
 
-    if (items.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>No items to display</p></div>';
-        return;
-    }
-
-    container.innerHTML = items.map(item => {
-        const urgentClass = item.needs_purchase ? 'urgent' : (item.low_stock ? 'warning' : '');
-        const daysClass = (item.days_until_empty === null || item.days_until_empty <= 0) ? 'urgent' : (item.days_until_empty <= 7 ? 'warning' : '');
-        const daysText = item.days_until_empty === null ? 'N/A'
-            : item.days_until_empty <= 0 ? 'Empty!'
-            : `${item.days_until_empty}d left`;
-
-        return `
-            <div class="item-card ${urgentClass}">
-                <div class="item-header">
-                    <div>
-                        <div class="item-name">${escapeHtml(item.name)}</div>
-                        <div class="item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</div>
-                    </div>
-                </div>
-                <div class="item-stats">
-                    <div>
-                        <span class="item-quantity">${item.current_quantity || 0}</span>
-                        <span class="item-unit">${escapeHtml(item.unit)}</span>
-                    </div>
-                    <span class="item-days ${daysClass}">${daysText}</span>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-purchase" data-id="${item.id}" data-name="${escapeHtml(item.name)}">
-                        + Purchase
-                    </button>
-                    <button class="btn-edit" data-id="${item.id}">Edit</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Add event listeners (safer than inline onclick)
-    container.querySelectorAll('.btn-purchase').forEach(btn => {
-        btn.addEventListener('click', () => openQuickPurchase(parseInt(btn.dataset.id), btn.dataset.name));
-    });
-    container.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
-    });
-}
-
-function renderInventoryList() {
-    const container = document.getElementById('inventory-list');
-
     if (consumables.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>No items in inventory</p></div>';
+        container.innerHTML = `<div class="empty-state"><p>${escapeHtml(emptyMessage)}</p></div>`;
         return;
     }
 
@@ -408,6 +357,61 @@ function renderInventoryList() {
     container.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
     });
+}
+
+function renderInventoryGrid() {
+    const container = document.getElementById('inventory-list');
+
+    if (consumables.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No items in inventory</p></div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="inventory-grid">
+            <div class="inventory-grid-header">
+                <span>Name</span>
+                <span>Category</span>
+                <span>Qty</span>
+                <span>Usage</span>
+                <span>Min</span>
+                <span></span>
+            </div>
+            ${consumables.map(item => {
+                const usageRate = item.custom_usage_rate || item.default_usage_rate;
+                return `
+                    <div class="inventory-grid-row">
+                        <span>${escapeHtml(item.name)}</span>
+                        <span>${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</span>
+                        <span>${item.current_quantity || 0} ${escapeHtml(item.unit)}</span>
+                        <span>${usageRate}/wk</span>
+                        <span>${item.min_stock_level}</span>
+                        <button class="btn-edit" data-id="${item.id}">Edit</button>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+
+    container.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
+    });
+}
+
+function renderInventoryView() {
+    if (isMobileView() || inventoryViewMode === 'list') {
+        renderItemList('inventory-list', 'No items in inventory');
+    } else {
+        renderInventoryGrid();
+    }
+}
+
+function setInventoryViewMode(mode) {
+    inventoryViewMode = mode;
+    localStorage.setItem('inventoryViewMode', mode);
+    document.getElementById('view-list-btn').classList.toggle('active', mode === 'list');
+    document.getElementById('view-grid-btn').classList.toggle('active', mode === 'grid');
+    renderInventoryView();
 }
 
 function populatePurchaseSelect() {
@@ -471,37 +475,6 @@ function renderPurchasesTable(purchases) {
 
     container.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', () => deletePurchase(parseInt(btn.dataset.id)));
-    });
-}
-
-function renderManageList() {
-    const container = document.getElementById('manage-items-list');
-
-    if (consumables.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>No items to manage</p></div>';
-        return;
-    }
-
-    container.innerHTML = consumables.map(item => {
-        const usageRate = item.custom_usage_rate || item.default_usage_rate;
-        return `
-            <div class="list-item">
-                <div class="list-item-row">
-                    <div class="list-item-name">${escapeHtml(item.name)}</div>
-                    <div class="list-item-quantity">${item.current_quantity || 0} ${escapeHtml(item.unit)}</div>
-                </div>
-                <div class="list-item-meta">
-                    <span class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</span>
-                    <span class="list-item-usage">${usageRate}/wk</span>
-                    <span class="list-item-min">Min: ${item.min_stock_level}</span>
-                    <button class="btn-edit" data-id="${item.id}">Edit</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    container.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
     });
 }
 

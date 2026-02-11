@@ -26,10 +26,10 @@
         <header>
             <h1>Home Inventory<span id="env-badge" class="env-badge hidden"></span></h1>
             <nav>
-                <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-                <button class="nav-btn" data-view="inventory">Inventory</button>
-                <button class="nav-btn" data-view="purchases">Purchases</button>
-                <button class="nav-btn" data-view="manage">Manage Items</button>
+                <button class="nav-btn view-nav-btn active" data-view="dashboard">Dashboard</button>
+                <button class="nav-btn view-nav-btn" data-view="inventory">Inventory</button>
+                <button class="nav-btn view-nav-btn" data-view="purchases">Purchases</button>
+                <button class="nav-btn view-nav-btn" data-view="manage">Manage Items</button>
             </nav>
             <button id="settings-btn">Settings</button>
             <button id="logout-btn">Logout</button>
@@ -37,19 +37,19 @@
 
         <!-- Mobile Navigation -->
         <nav id="mobile-nav" class="mobile-nav">
-            <button class="mobile-nav-btn active" data-view="dashboard">
+            <button class="mobile-nav-btn view-nav-btn active" data-view="dashboard">
                 <span class="nav-icon">📊</span>
                 <span class="nav-label">Dashboard</span>
             </button>
-            <button class="mobile-nav-btn" data-view="inventory">
+            <button class="mobile-nav-btn view-nav-btn" data-view="inventory">
                 <span class="nav-icon">📦</span>
                 <span class="nav-label">Inventory</span>
             </button>
-            <button class="mobile-nav-btn" data-view="purchases">
+            <button class="mobile-nav-btn view-nav-btn" data-view="purchases">
                 <span class="nav-icon">🛒</span>
                 <span class="nav-label">Purchases</span>
             </button>
-            <button class="mobile-nav-btn" data-view="manage">
+            <button class="mobile-nav-btn view-nav-btn" data-view="manage">
                 <span class="nav-icon">📝</span>
                 <span class="nav-label">Manage</span>
             </button>
@@ -96,6 +96,10 @@
                     <select id="inventory-category-filter">
                         <option value="">All Categories</option>
                     </select>
+                    <div id="inventory-view-toggle" class="view-toggle">
+                        <button id="view-list-btn" class="view-toggle-btn active" title="List view">&#8801;</button>
+                        <button id="view-grid-btn" class="view-toggle-btn" title="Grid view">&#8862;</button>
+                    </div>
                 </div>
                 <div id="inventory-list" class="items-list"></div>
             </div>

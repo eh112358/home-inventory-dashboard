@@ -2,13 +2,13 @@
 
 ## Features Overview
 
-| # | Feature | Scope | Complexity |
-|---|---------|-------|------------|
-| 1 | Voice input for purchases | Frontend only | Medium |
-| 2 | Inventory table/grid view toggle | Frontend only | Low |
-| 3 | Multi-edit mode (quantity + usage rates) | Full stack | Medium |
-| 4 | Add custom categories | Full stack | Low |
-| 5 | Edit/delete existing categories | Full stack | Low |
+| # | Feature | Scope | Complexity | Status |
+|---|---------|-------|------------|--------|
+| 1 | Voice input for purchases | Frontend only | Medium | To do |
+| 2 | Inventory table/grid view toggle | Frontend only | Low | To do |
+| 3 | Multi-edit mode (quantity + usage rates) | Full stack | Medium | To do |
+| 4 | Add custom categories | Full stack | Low | ✅ Done |
+| 5 | Edit/delete existing categories | Full stack | Low | ✅ Done |
 
 ## Design Decisions
 
@@ -103,78 +103,21 @@ Validation:
 
 ---
 
-## Feature 4: Add Custom Categories
+## Feature 4: ✅ Add Custom Categories — COMPLETED
 
-### Backend
-Add create endpoint:
-```
-POST /api/categories
-Body: { "name": "Electronics", "icon": "🔌" }
-Response: { "id": 4, "name": "Electronics", "icon": "🔌", "success": true }
-```
-
-Validation:
-- Name required, max 50 characters
-- Unique name (case-insensitive)
-- Default icon: 📦
-
-### Frontend
-- Add "Categories" section to Manage Items view
-- Inline form: emoji picker + name input
-- Render categories list with edit/delete buttons
-
-### Files to Modify
-- `backend/app.py` - Add `create_category()` endpoint
-- `frontend/index.html` - Add category form, emoji picker modal
-- `frontend/js/app.js` - Add category form handlers, emoji picker
-- `frontend/css/styles.css` - Category list styles, emoji picker grid
-
-### Emoji Picker
-```javascript
-const CATEGORY_EMOJIS = [
-    '📦', '🏠', '🍎', '🧴', '🧹', '🧺', '🧽', '🧻',
-    '💊', '🩹', '🧸', '🎮', '📚', '✏️', '🔧', '🔌',
-    '🚗', '🌱', '🐕', '🐈', '👶', '👕', '🧴', '🧼'
-];
-```
+**Implemented:** Added `POST /api/categories` endpoint with name validation (required, max 50 chars, case-insensitive uniqueness) and default icon (📦). Frontend includes inline form with emoji picker in Manage Items view. Categories list renders with edit/delete buttons. Tests added. (Commit: f1aea75)
 
 ---
 
-## Feature 5: Edit/Delete Existing Categories
+## Feature 5: ✅ Edit/Delete Existing Categories — COMPLETED
 
-### Backend
-Add update and delete endpoints:
-```
-PUT /api/categories/{id}
-Body: { "name": "New Name", "icon": "🏠" }
-Response: { "id": 1, "name": "New Name", "icon": "🏠", "success": true }
-
-DELETE /api/categories/{id}
-Response: { "success": true }
-Error: { "error": "Cannot delete category \"Household\": 9 item(s) are using this category." }
-```
-
-Validation:
-- Check category exists (404 if not)
-- Check unique name on update (409 if duplicate)
-- Block deletion if items exist (409 with item count)
-
-### Frontend
-- Edit button opens modal with name/icon fields
-- Delete button shows confirmation, displays error if blocked
-- Refresh all category dropdowns after changes
-
-### Files to Modify
-- `backend/app.py` - Add `update_category()`, `delete_category()` endpoints
-- `frontend/index.html` - Add edit category modal
-- `frontend/js/app.js` - Add edit/delete handlers
-- `backend/tests/test_api.py` - Add category CRUD tests
+**Implemented:** Added `PUT /api/categories/{id}` and `DELETE /api/categories/{id}` endpoints. Update validates unique name, delete blocks if items exist in category (409 with item count). Frontend edit opens modal with name/icon fields, delete shows confirmation. All category dropdowns refresh after changes. Tests added. (Commit: f1aea75)
 
 ---
 
 ## Implementation Order
 
-1. **Features 4 & 5 (Categories)** - Foundation, no dependencies
+1. ~~**Features 4 & 5 (Categories)** - Foundation, no dependencies~~ ✅ Done
 2. **Feature 2 (Grid Toggle)** - Simple, frontend only
 3. **Feature 3 (Multi-Edit)** - More complex, builds on grid patterns
 4. **Feature 1 (Voice Input)** - Independent, can parallel others
@@ -197,10 +140,10 @@ cd backend && pytest tests/ -v
 - [ ] Grid: Both views render correctly, edit works in both
 - [ ] Multi-Edit: Changes highlighted, Save All updates all modified items
 - [ ] Multi-Edit: Cancel discards changes
-- [ ] Categories: Create new category, appears in all dropdowns
-- [ ] Categories: Edit name/icon, changes reflected everywhere
-- [ ] Categories: Delete empty category succeeds
-- [ ] Categories: Delete category with items shows error message
+- [x] Categories: Create new category, appears in all dropdowns
+- [x] Categories: Edit name/icon, changes reflected everywhere
+- [x] Categories: Delete empty category succeeds
+- [x] Categories: Delete category with items shows error message
 - [ ] Mobile: Voice button works, grid toggle hidden, multi-edit hidden
 
 ---
@@ -209,25 +152,25 @@ cd backend && pytest tests/ -v
 
 | File | Changes |
 |------|---------|
-| `backend/app.py` | +4 endpoints (POST/PUT/DELETE categories, PUT batch inventory) |
-| `backend/tests/test_api.py` | +tests for new endpoints |
-| `frontend/index.html` | +voice button, +modals, +category section, +toggle buttons |
-| `frontend/js/app.js` | +VoiceInput module, +view toggle, +multi-edit, +category CRUD |
-| `frontend/css/styles.css` | +all new component styles |
+| `backend/app.py` | ✅ +3 category endpoints (POST/PUT/DELETE), remaining: +1 batch inventory |
+| `backend/tests/test_api.py` | ✅ +category CRUD tests, remaining: +batch inventory tests |
+| `frontend/index.html` | ✅ +category section/modals, remaining: +voice button, +toggle buttons |
+| `frontend/js/app.js` | ✅ +category CRUD/emoji picker, remaining: +VoiceInput, +view toggle, +multi-edit |
+| `frontend/css/styles.css` | ✅ +category/emoji styles, remaining: +voice, +grid toggle, +multi-edit styles |
 
 ---
 
 ## API Contracts Summary
 
-### Categories
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/categories` | List all categories (existing) |
-| POST | `/api/categories` | Create new category |
-| PUT | `/api/categories/{id}` | Update category name/icon |
-| DELETE | `/api/categories/{id}` | Delete category (blocked if has items) |
+### Categories (✅ All implemented)
+| Method | Endpoint | Description | Status |
+|--------|----------|-------------|--------|
+| GET | `/api/categories` | List all categories | ✅ Done |
+| POST | `/api/categories` | Create new category | ✅ Done |
+| PUT | `/api/categories/{id}` | Update category name/icon | ✅ Done |
+| DELETE | `/api/categories/{id}` | Delete category (blocked if has items) | ✅ Done |
 
 ### Inventory
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| PUT | `/api/inventory/batch` | Batch update quantities and usage rates |
+| Method | Endpoint | Description | Status |
+|--------|----------|-------------|--------|
+| PUT | `/api/inventory/batch` | Batch update quantities and usage rates | To do |
