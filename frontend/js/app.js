@@ -34,6 +34,9 @@ let selectedCategoryIcon = '📦';
 let editCategoryIcon = '📦';
 let inventoryViewMode = localStorage.getItem('inventoryViewMode') || 'list';
 let activeCategoryDropdown = null;
+let multiEditMode = false;
+let editedItems = new Map();   // id -> { current_quantity, custom_usage_rate }
+let originalItems = new Map(); // id -> { current_quantity, custom_usage_rate }
 
 // Emoji choices for category icons
 const CATEGORY_EMOJIS = [
@@ -199,6 +202,11 @@ function setupEventListeners() {
     document.getElementById('view-list-btn').addEventListener('click', () => setInventoryViewMode('list'));
     document.getElementById('view-grid-btn').addEventListener('click', () => setInventoryViewMode('grid'));
 
+    // Multi-edit mode
+    document.getElementById('multi-edit-btn').addEventListener('click', enterMultiEdit);
+    document.getElementById('multi-edit-cancel').addEventListener('click', exitMultiEdit);
+    document.getElementById('multi-edit-save').addEventListener('click', saveMultiEdit);
+
     // Forms
     document.getElementById('purchase-form').addEventListener('submit', handleNewPurchase);
     document.getElementById('add-item-form').addEventListener('submit', handleAddItem);
@@ -291,6 +299,11 @@ async function showApp() {
 
 // View switching
 async function switchView(view) {
+    // Exit multi-edit if navigating away from inventory
+    if (multiEditMode && view !== 'inventory') {
+        exitMultiEdit();
+    }
+
     currentView = view;
 
     document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
@@ -476,6 +489,10 @@ function renderInventoryGrid() {
 }
 
 function renderInventoryView() {
+    if (multiEditMode) {
+        renderMultiEditList();
+        return;
+    }
     if (isMobileView() || inventoryViewMode === 'list') {
         renderItemList('inventory-list', 'No items in inventory');
     } else {
@@ -489,6 +506,167 @@ function setInventoryViewMode(mode) {
     document.getElementById('view-list-btn').classList.toggle('active', mode === 'list');
     document.getElementById('view-grid-btn').classList.toggle('active', mode === 'grid');
     renderInventoryView();
+}
+
+// Multi-edit mode functions
+function enterMultiEdit() {
+    multiEditMode = true;
+    editedItems.clear();
+    originalItems.clear();
+
+    // Snapshot the current values for all visible items
+    consumables.forEach(item => {
+        originalItems.set(item.id, {
+            current_quantity: item.current_quantity || 0,
+            custom_usage_rate: item.custom_usage_rate || item.default_usage_rate
+        });
+    });
+
+    // Show save bar, hide view toggle
+    document.getElementById('multi-edit-bar').classList.remove('hidden');
+    document.getElementById('inventory-view-toggle').classList.add('hidden');
+    document.getElementById('multi-edit-btn').classList.add('hidden');
+    updateMultiEditCount();
+    renderInventoryView();
+}
+
+function exitMultiEdit() {
+    multiEditMode = false;
+    editedItems.clear();
+    originalItems.clear();
+
+    // Hide save bar, show view toggle
+    document.getElementById('multi-edit-bar').classList.add('hidden');
+    document.getElementById('inventory-view-toggle').classList.remove('hidden');
+    document.getElementById('multi-edit-btn').classList.remove('hidden');
+    renderInventoryView();
+}
+
+function renderMultiEditList() {
+    const container = document.getElementById('inventory-list');
+
+    if (consumables.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No items in inventory</p></div>';
+        return;
+    }
+
+    container.innerHTML = consumables.map(item => {
+        const original = originalItems.get(item.id);
+        const edited = editedItems.get(item.id);
+        const isModified = editedItems.has(item.id);
+        const modifiedClass = isModified ? 'modified' : '';
+
+        const qtyValue = edited ? edited.current_quantity : (original ? original.current_quantity : 0);
+        const rateValue = edited ? edited.custom_usage_rate : (original ? original.custom_usage_rate : item.default_usage_rate);
+
+        return `
+            <div class="list-item ${modifiedClass}" data-item-id="${item.id}">
+                <div class="list-item-row">
+                    <div class="list-item-name">${escapeHtml(item.name)}</div>
+                    <div class="list-item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</div>
+                </div>
+                <div class="list-item-meta">
+                    <div class="multi-edit-field">
+                        <label>Qty:</label>
+                        <input type="number" inputmode="decimal" step="0.1" min="0"
+                               class="multi-edit-input" data-field="current_quantity"
+                               data-id="${item.id}" value="${qtyValue}">
+                        <span style="font-size:0.8rem;color:var(--gray-500)">${escapeHtml(item.unit)}</span>
+                    </div>
+                    <div class="multi-edit-field">
+                        <label>Use/wk:</label>
+                        <input type="number" inputmode="decimal" step="0.1" min="0"
+                               class="multi-edit-input" data-field="custom_usage_rate"
+                               data-id="${item.id}" value="${rateValue}">
+                    </div>
+                    <span class="list-item-min">Min: ${item.min_stock_level}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Add input event listeners
+    container.querySelectorAll('.multi-edit-input').forEach(input => {
+        input.addEventListener('input', handleMultiEditInput);
+    });
+}
+
+function handleMultiEditInput(e) {
+    const input = e.target;
+    const itemId = parseInt(input.dataset.id);
+    const field = input.dataset.field;
+    const value = parseFloat(input.value);
+    const original = originalItems.get(itemId);
+
+    if (!original) return;
+
+    // Get current edited state or start from original
+    const current = editedItems.get(itemId) || { ...original };
+    current[field] = isNaN(value) ? original[field] : value;
+
+    // Check if values differ from original
+    const qtyChanged = current.current_quantity !== original.current_quantity;
+    const rateChanged = current.custom_usage_rate !== original.custom_usage_rate;
+
+    if (qtyChanged || rateChanged) {
+        editedItems.set(itemId, current);
+    } else {
+        editedItems.delete(itemId);
+    }
+
+    // Update modified class on the row
+    const row = input.closest('.list-item');
+    if (editedItems.has(itemId)) {
+        row.classList.add('modified');
+    } else {
+        row.classList.remove('modified');
+    }
+
+    updateMultiEditCount();
+}
+
+function updateMultiEditCount() {
+    const count = editedItems.size;
+    document.getElementById('multi-edit-count').textContent =
+        count === 0 ? '0 items changed' :
+        count === 1 ? '1 item changed' :
+        `${count} items changed`;
+}
+
+async function saveMultiEdit() {
+    if (editedItems.size === 0) {
+        showToast('No changes to save', 'info');
+        return;
+    }
+
+    const updates = [];
+    editedItems.forEach((values, itemId) => {
+        updates.push({
+            consumable_type_id: itemId,
+            current_quantity: values.current_quantity,
+            custom_usage_rate: values.custom_usage_rate
+        });
+    });
+
+    try {
+        const result = await api('/inventory/batch', {
+            method: 'PUT',
+            body: JSON.stringify({ updates })
+        });
+
+        if (result.success) {
+            const errorCount = result.errors ? result.errors.length : 0;
+            if (errorCount > 0) {
+                showToast(`Updated ${result.updated} items, ${errorCount} failed`, 'error');
+            } else {
+                showToast(`Updated ${result.updated} items`, 'success');
+            }
+            exitMultiEdit();
+            await loadInventory();
+        }
+    } catch (err) {
+        showToast('Failed to save changes: ' + err.message, 'error');
+    }
 }
 
 function populatePurchaseSelect() {

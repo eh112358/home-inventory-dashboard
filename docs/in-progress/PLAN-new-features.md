@@ -6,7 +6,7 @@
 |---|---------|-------|------------|--------|
 | 1 | Voice input for purchases | Frontend only | Medium | To do |
 | 2 | Inventory table/grid view toggle | Frontend only | Low | ✅ Done |
-| 3 | Multi-edit mode (quantity + usage rates) | Full stack | Medium | To do |
+| 3 | Multi-edit mode (quantity + usage rates) | Full stack | Medium | ✅ Done |
 | 4 | Add custom categories | Full stack | Low | ✅ Done |
 | 5 | Edit/delete existing categories | Full stack | Low | ✅ Done |
 
@@ -55,33 +55,9 @@ const patterns = [
 
 ---
 
-## Feature 3: Multi-Edit Mode
+## Feature 3: ✅ Multi-Edit Mode — COMPLETED
 
-### Backend
-Add batch update endpoint:
-```
-PUT /api/inventory/batch
-Body: { "updates": [{ "consumable_type_id": 1, "current_quantity": 10, "custom_usage_rate": 3 }, ...] }
-Response: { "success": true, "updated": 2 }
-```
-
-Validation:
-- Max 100 updates per request
-- Validate each quantity and usage rate
-- Return partial success (HTTP 207) if some updates fail
-
-### Frontend
-- Add "Edit Multiple" button to Inventory view
-- Transform to editable grid with input fields for quantity + usage rate
-- Track modified items with `Map`, highlight changes
-- Save All / Cancel buttons
-- Single batch API call
-
-### Files to Modify
-- `backend/app.py` - Add `batch_update_inventory()` endpoint
-- `frontend/index.html` - Add multi-edit controls
-- `frontend/js/app.js` - Add `editedItems` Map, render/save functions
-- `frontend/css/styles.css` - Multi-edit grid styles, modified row highlighting
+**Implemented:** Added `PUT /api/inventory/batch` endpoint that accepts up to 100 item updates in a single request with per-item validation and partial success support. Frontend adds a pencil toggle button in inventory filter bar (mobile + desktop). Entering multi-edit replaces static quantity/usage text with inline number inputs within existing list items. Changed items highlight yellow, a sticky save/cancel bar shows count. "Save All" sends a single batch API call. Works on both mobile (stacked card layout) and desktop (horizontal row layout). New functions: `enterMultiEdit()`, `exitMultiEdit()`, `renderMultiEditList()`, `saveMultiEdit()`. Tests added for batch endpoint. (Commit: pending)
 
 ---
 
@@ -101,7 +77,7 @@ Validation:
 
 1. ~~**Features 4 & 5 (Categories)** - Foundation, no dependencies~~ ✅ Done
 2. ~~**Feature 2 (Grid Toggle)** - Simple, frontend only~~ ✅ Done
-3. **Feature 3 (Multi-Edit)** - More complex, builds on grid patterns
+3. ~~**Feature 3 (Multi-Edit)** - More complex, builds on grid patterns~~ ✅ Done
 4. **Feature 1 (Voice Input)** - Independent, can parallel others
 
 ---
@@ -120,13 +96,13 @@ cd backend && pytest tests/ -v
 - [ ] Voice: Graceful handling when browser doesn't support Web Speech API
 - [x] Grid: Toggle persists across page reloads
 - [x] Grid: Both views render correctly, edit works in both
-- [ ] Multi-Edit: Changes highlighted, Save All updates all modified items
-- [ ] Multi-Edit: Cancel discards changes
+- [x] Multi-Edit: Changes highlighted, Save All updates all modified items
+- [x] Multi-Edit: Cancel discards changes
 - [x] Categories: Create new category, appears in all dropdowns
 - [x] Categories: Edit name/icon, changes reflected everywhere
 - [x] Categories: Delete empty category succeeds
 - [x] Categories: Delete category with items shows error message
-- [ ] Mobile: Voice button works, grid toggle hidden, multi-edit hidden
+- [ ] Mobile: Voice button works, grid toggle hidden, multi-edit works on mobile
 
 ---
 
@@ -134,11 +110,11 @@ cd backend && pytest tests/ -v
 
 | File | Changes |
 |------|---------|
-| `backend/app.py` | ✅ +3 category endpoints (POST/PUT/DELETE), remaining: +1 batch inventory |
-| `backend/tests/test_api.py` | ✅ +category CRUD tests, remaining: +batch inventory tests |
-| `frontend/index.html` | ✅ +category section/modals, ✅ +toggle buttons, remaining: +voice button |
-| `frontend/js/app.js` | ✅ +category CRUD/emoji picker, ✅ +view toggle, remaining: +VoiceInput, +multi-edit |
-| `frontend/css/styles.css` | ✅ +category/emoji styles, ✅ +grid toggle, remaining: +voice, +multi-edit styles |
+| `backend/app.py` | ✅ +3 category endpoints, ✅ +batch inventory endpoint, remaining: none for planned features |
+| `backend/tests/test_api.py` | ✅ +category CRUD tests, ✅ +batch inventory tests, remaining: none for planned features |
+| `frontend/index.html` | ✅ +category section/modals, ✅ +toggle buttons, ✅ +multi-edit controls, remaining: +voice button |
+| `frontend/js/app.js` | ✅ +category CRUD/emoji picker, ✅ +view toggle, ✅ +multi-edit mode, remaining: +VoiceInput |
+| `frontend/css/styles.css` | ✅ +category/emoji styles, ✅ +grid toggle, ✅ +multi-edit styles, remaining: +voice styles |
 
 ---
 
@@ -155,4 +131,4 @@ cd backend && pytest tests/ -v
 ### Inventory
 | Method | Endpoint | Description | Status |
 |--------|----------|-------------|--------|
-| PUT | `/api/inventory/batch` | Batch update quantities and usage rates | To do |
+| PUT | `/api/inventory/batch` | Batch update quantities and usage rates | ✅ Done |

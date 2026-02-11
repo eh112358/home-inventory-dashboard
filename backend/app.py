@@ -369,6 +369,75 @@ def delete_consumable(id):
     return jsonify({'success': True})
 
 # Inventory endpoints
+@app.route('/api/inventory/batch', methods=['PUT'])
+@login_required
+def batch_update_inventory():
+    data = request.get_json() or {}
+    updates = data.get('updates', [])
+
+    if not isinstance(updates, list) or len(updates) == 0:
+        return jsonify({'error': 'updates must be a non-empty array'}), 400
+
+    if len(updates) > 100:
+        return jsonify({'error': 'Maximum 100 updates per request'}), 400
+
+    errors = []
+    updated_count = 0
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        for i, item in enumerate(updates):
+            item_id = item.get('consumable_type_id')
+            if item_id is None:
+                errors.append({'index': i, 'error': 'consumable_type_id is required'})
+                continue
+
+            current_quantity = item.get('current_quantity')
+            if current_quantity is not None:
+                current_quantity, err = validate_positive_number(current_quantity, 'current_quantity', allow_zero=True)
+                if err:
+                    errors.append({'index': i, 'consumable_type_id': item_id, 'error': err})
+                    continue
+
+            custom_usage_rate = item.get('custom_usage_rate')
+            if custom_usage_rate is not None:
+                custom_usage_rate, err = validate_positive_number(custom_usage_rate, 'custom_usage_rate', required=False)
+                if err:
+                    errors.append({'index': i, 'consumable_type_id': item_id, 'error': err})
+                    continue
+
+            # Build UPDATE dynamically based on which fields were provided
+            fields = []
+            values = []
+            if current_quantity is not None:
+                fields.append('current_quantity = ?')
+                values.append(current_quantity)
+            if custom_usage_rate is not None:
+                fields.append('custom_usage_rate = ?')
+                values.append(custom_usage_rate)
+
+            if not fields:
+                errors.append({'index': i, 'consumable_type_id': item_id, 'error': 'No fields to update'})
+                continue
+
+            fields.append('last_updated = CURRENT_TIMESTAMP')
+            values.append(item_id)
+
+            cursor.execute(
+                f'UPDATE inventory SET {", ".join(fields)} WHERE consumable_type_id = ?',
+                values
+            )
+            if cursor.rowcount > 0:
+                updated_count += 1
+
+    invalidate_dashboard_cache()
+
+    result = {'success': True, 'updated': updated_count}
+    if errors:
+        result['errors'] = errors
+
+    return jsonify(result)
+
 @app.route('/api/inventory/<int:consumable_id>', methods=['PUT'])
 @login_required
 def update_inventory(consumable_id):

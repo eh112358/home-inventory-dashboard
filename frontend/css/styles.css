@@ -543,6 +543,91 @@ main {
     font-size: 0.75rem;
 }
 
+/* ===== Multi-Edit Mode ===== */
+.multi-edit-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #eff6ff;
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    position: sticky;
+    bottom: 70px;
+    z-index: 50;
+}
+
+.multi-edit-bar span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.multi-edit-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.multi-edit-actions button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+#multi-edit-cancel {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+#multi-edit-cancel:hover {
+    background: var(--gray-300);
+}
+
+#multi-edit-save {
+    background: var(--primary);
+    color: white;
+}
+
+#multi-edit-save:hover {
+    background: var(--primary-dark);
+}
+
+.multi-edit-input {
+    width: 70px;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+.multi-edit-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.list-item.modified {
+    background: #fefce8;
+    border-color: var(--warning);
+}
+
+.multi-edit-field {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.multi-edit-field label {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    white-space: nowrap;
+}
+
 /* ===== Inventory Grid (hidden on mobile, list view only) ===== */
 .inventory-grid {
     display: none;
@@ -1662,6 +1747,15 @@ main {
 
     .btn-add-category-desktop:hover {
         background: var(--primary-dark);
+    }
+
+    /* Multi-edit bar: no mobile nav to clear on desktop */
+    .multi-edit-bar {
+        bottom: 0;
+    }
+
+    .multi-edit-input {
+        width: 80px;
     }
 
     /* FAB: hidden on desktop */

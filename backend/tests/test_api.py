@@ -463,6 +463,92 @@ class TestInventory:
 
 
 # =============================================================================
+# Inventory Batch Update Tests
+# =============================================================================
+
+class TestInventoryBatch:
+    def test_batch_update_inventory(self, authenticated_client):
+        """Test batch updating quantity and usage rate for multiple items."""
+        response = authenticated_client.get('/api/consumables')
+        items = json.loads(response.data)
+        item1_id = items[0]['id']
+        item2_id = items[1]['id']
+
+        batch_data = {
+            'updates': [
+                {'consumable_type_id': item1_id, 'current_quantity': 42.0, 'custom_usage_rate': 5.0},
+                {'consumable_type_id': item2_id, 'current_quantity': 18.0}
+            ]
+        }
+        response = authenticated_client.put('/api/inventory/batch',
+                                            data=json.dumps(batch_data),
+                                            content_type='application/json')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data['success'] is True
+        assert data['updated'] == 2
+
+        # Verify via GET
+        response = authenticated_client.get('/api/consumables')
+        items = json.loads(response.data)
+        updated1 = next(i for i in items if i['id'] == item1_id)
+        updated2 = next(i for i in items if i['id'] == item2_id)
+        assert updated1['current_quantity'] == 42.0
+        assert updated1['custom_usage_rate'] == 5.0
+        assert updated2['current_quantity'] == 18.0
+
+    def test_batch_update_empty(self, authenticated_client):
+        """Test batch update with empty array returns 400."""
+        response = authenticated_client.put('/api/inventory/batch',
+                                            data=json.dumps({'updates': []}),
+                                            content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+    def test_batch_update_too_many(self, authenticated_client):
+        """Test batch update with more than 100 items returns 400."""
+        updates = [{'consumable_type_id': 1, 'current_quantity': 1.0} for _ in range(101)]
+        response = authenticated_client.put('/api/inventory/batch',
+                                            data=json.dumps({'updates': updates}),
+                                            content_type='application/json')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'Maximum' in data['error']
+
+    def test_batch_update_partial_invalid(self, authenticated_client):
+        """Test batch update with mix of valid and invalid items."""
+        response = authenticated_client.get('/api/consumables')
+        items = json.loads(response.data)
+        item_id = items[0]['id']
+
+        batch_data = {
+            'updates': [
+                {'consumable_type_id': item_id, 'current_quantity': 30.0},
+                {'consumable_type_id': item_id, 'current_quantity': -5.0}
+            ]
+        }
+        response = authenticated_client.put('/api/inventory/batch',
+                                            data=json.dumps(batch_data),
+                                            content_type='application/json')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data['updated'] >= 1
+        assert 'errors' in data
+        assert len(data['errors']) == 1
+
+    def test_batch_update_unauthenticated(self, client):
+        """Test batch update without authentication returns 401."""
+        batch_data = {
+            'updates': [{'consumable_type_id': 1, 'current_quantity': 10.0}]
+        }
+        response = client.put('/api/inventory/batch',
+                              data=json.dumps(batch_data),
+                              content_type='application/json')
+        assert response.status_code == 401
+
+
+# =============================================================================
 # Purchases Tests
 # =============================================================================
 
