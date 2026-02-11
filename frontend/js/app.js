@@ -156,6 +156,16 @@ function setupEventListeners() {
     loginForm.addEventListener('submit', handleLogin);
     logoutBtn.addEventListener('click', handleLogout);
 
+    // Password visibility toggle
+    document.getElementById('password-toggle').addEventListener('click', () => {
+        const input = document.getElementById('password-input');
+        const toggle = document.getElementById('password-toggle');
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        toggle.textContent = isPassword ? '🙈' : '👁';
+        toggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    });
+
     // Settings modal
     document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
     document.getElementById('download-backup-btn').addEventListener('click', downloadBackup);
