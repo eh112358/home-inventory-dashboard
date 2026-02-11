@@ -41,6 +41,64 @@ const CATEGORY_EMOJIS = [
     '🚗', '🌱', '🐕', '🐈', '👶', '👕', '🧼', '🛒'
 ];
 
+// Toast notification system
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    const duration = type === 'error' ? 5000 : 3000;
+
+    setTimeout(() => {
+        toast.classList.add('toast-removing');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// Custom confirm dialog (replaces native confirm())
+function showConfirm(message) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-dialog">
+                <p>${escapeHtml(message)}</p>
+                <div class="confirm-dialog-actions">
+                    <button class="confirm-cancel">Cancel</button>
+                    <button class="confirm-ok">Confirm</button>
+                </div>
+            </div>
+        `;
+
+        overlay.querySelector('.confirm-cancel').addEventListener('click', () => {
+            overlay.remove();
+            resolve(false);
+        });
+
+        overlay.querySelector('.confirm-ok').addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
+        });
+
+        // Close on overlay background click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                resolve(false);
+            }
+        });
+
+        document.body.appendChild(overlay);
+    });
+}
+
+// Modal close helper
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
 // Environment indicator
 async function loadEnvironment() {
     try {
@@ -564,11 +622,11 @@ async function handleDeleteItem() {
     const id = document.getElementById('edit-item-id').value;
     const name = document.getElementById('edit-item-name').value;
 
-    if (confirm(`Are you sure you want to delete "${name}"? This will also delete all purchase history for this item.`)) {
-        await api(`/consumables/${id}`, { method: 'DELETE' });
-        document.getElementById('edit-modal').classList.add('hidden');
-        await switchView(currentView);
-    }
+    if (!(await showConfirm(`Are you sure you want to delete "${name}"? This will also delete all purchase history for this item.`))) return;
+
+    await api(`/consumables/${id}`, { method: 'DELETE' });
+    closeModal('edit-modal');
+    await switchView(currentView);
 }
 
 async function handleQuickPurchase(e) {
@@ -618,10 +676,10 @@ function openQuickPurchase(id, name) {
 }
 
 async function deletePurchase(id) {
-    if (confirm('Are you sure you want to delete this purchase? This will also update the inventory.')) {
-        await api(`/purchases/${id}`, { method: 'DELETE' });
-        await loadPurchases();
-    }
+    if (!(await showConfirm('Are you sure you want to delete this purchase? This will also update the inventory.'))) return;
+
+    await api(`/purchases/${id}`, { method: 'DELETE' });
+    await loadPurchases();
 }
 
 // Settings modal functions
@@ -640,7 +698,7 @@ async function downloadBackup() {
 
         if (!response.ok) {
             const error = await response.json();
-            alert('Download failed: ' + (error.error || 'Unknown error'));
+            showToast('Download failed: ' + (error.error || 'Unknown error'), 'error');
             return;
         }
 
@@ -654,14 +712,14 @@ async function downloadBackup() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     } catch (err) {
-        alert('Download failed: ' + err.message);
+        showToast('Download failed: ' + err.message, 'error');
     }
 }
 
-function triggerRestoreUpload() {
-    if (confirm('Warning: This will replace ALL current data with the backup file. This cannot be undone. Continue?')) {
-        document.getElementById('restore-file-input').click();
-    }
+async function triggerRestoreUpload() {
+    if (!(await showConfirm('Warning: This will replace ALL current data with the backup file. This cannot be undone. Continue?'))) return;
+
+    document.getElementById('restore-file-input').click();
 }
 
 async function handleRestoreUpload(e) {
@@ -686,13 +744,13 @@ async function handleRestoreUpload(e) {
         const result = await response.json();
 
         if (result.success) {
-            alert('Database restored successfully. The page will now reload.');
+            showToast('Database restored successfully. The page will now reload.', 'success');
             window.location.reload();
         } else {
-            alert('Restore failed: ' + (result.error || 'Unknown error'));
+            showToast('Restore failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (err) {
-        alert('Restore failed: ' + err.message);
+        showToast('Restore failed: ' + err.message, 'error');
     }
 
     // Reset file input
@@ -707,7 +765,7 @@ async function openFabPurchase() {
     }
 
     if (consumables.length === 0) {
-        alert('No items available. Add items first in Manage Items.');
+        showToast('No items available. Add items first in Manage Items.', 'info');
         return;
     }
 
@@ -938,7 +996,7 @@ async function handleAddCategory() {
     const name = nameInput.value.trim();
 
     if (!name) {
-        alert('Please enter a category name.');
+        showToast('Please enter a category name.', 'error');
         nameInput.focus();
         return;
     }
@@ -981,7 +1039,7 @@ async function handleEditCategory(e) {
     const name = document.getElementById('edit-category-name').value.trim();
 
     if (!name) {
-        alert('Category name is required.');
+        showToast('Category name is required.', 'error');
         return;
     }
 
@@ -1005,7 +1063,7 @@ async function handleDeleteCategory() {
     const id = document.getElementById('edit-category-id').value;
     const name = document.getElementById('edit-category-name').value;
 
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    if (!(await showConfirm(`Are you sure you want to delete "${name}"?`))) return;
 
     try {
         const response = await fetch(`/api/categories/${id}`, {
@@ -1017,14 +1075,14 @@ async function handleDeleteCategory() {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            document.getElementById('edit-category-modal').classList.add('hidden');
+            closeModal('edit-category-modal');
             await loadCategories();
             renderCategoryList();
         } else {
-            alert(result.error || 'Failed to delete category.');
+            showToast(result.error || 'Failed to delete category.', 'error');
         }
     } catch (err) {
-        alert('Failed to delete category: ' + err.message);
+        showToast('Failed to delete category: ' + err.message, 'error');
     }
 }
 
@@ -1032,7 +1090,7 @@ async function quickDeleteCategory(id) {
     const cat = categories.find(c => c.id === id);
     if (!cat) return;
 
-    if (!confirm(`Are you sure you want to delete "${cat.name}"?`)) return;
+    if (!(await showConfirm(`Are you sure you want to delete "${cat.name}"?`))) return;
 
     try {
         const response = await fetch(`/api/categories/${id}`, {
@@ -1047,10 +1105,10 @@ async function quickDeleteCategory(id) {
             await loadCategories();
             renderCategoryList();
         } else {
-            alert(result.error || 'Failed to delete category.');
+            showToast(result.error || 'Failed to delete category.', 'error');
         }
     } catch (err) {
-        alert('Failed to delete category: ' + err.message);
+        showToast('Failed to delete category: ' + err.message, 'error');
     }
 }
 
