@@ -37,6 +37,9 @@ let activeCategoryDropdown = null;
 let multiEditMode = false;
 let editedItems = new Map();   // id -> { current_quantity, custom_usage_rate }
 let originalItems = new Map(); // id -> { current_quantity, custom_usage_rate }
+let expandedDashboardRow = null;
+let dashboardNeedsPurchase = [];
+let dashboardLowStock = [];
 
 // Emoji choices for category icons
 const CATEGORY_EMOJIS = [
@@ -59,6 +62,45 @@ function showToast(message, type = 'info') {
         toast.classList.add('toast-removing');
         setTimeout(() => toast.remove(), 300);
     }, duration);
+}
+
+// Copy item names to clipboard
+function copyItemNames(listId) {
+    const items = listId === 'needs-purchase-list' ? dashboardNeedsPurchase : dashboardLowStock;
+
+    if (items.length === 0) {
+        showToast('No items to copy', 'info');
+        return;
+    }
+
+    const text = items.map(item => item.name).join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(`Copied ${items.length} item${items.length === 1 ? '' : 's'} to clipboard`, 'success');
+        }).catch(() => {
+            copyFallback(text, items.length);
+        });
+    } else {
+        copyFallback(text, items.length);
+    }
+}
+
+// Fallback copy for non-HTTPS contexts
+function copyFallback(text, count) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showToast(`Copied ${count} item${count === 1 ? '' : 's'} to clipboard`, 'success');
+    } catch (err) {
+        showToast('Failed to copy to clipboard', 'error');
+    }
+    document.body.removeChild(textarea);
 }
 
 // Custom confirm dialog (replaces native confirm())
@@ -192,6 +234,10 @@ function setupEventListeners() {
             header.classList.remove('compact');
         }
     });
+
+    // Copy to clipboard buttons
+    document.getElementById('copy-purchase-list').addEventListener('click', () => copyItemNames('needs-purchase-list'));
+    document.getElementById('copy-lowstock-list').addEventListener('click', () => copyItemNames('low-stock-list'));
 
     // Category filters
     document.getElementById('dashboard-category-filter').addEventListener('change', loadDashboard);
@@ -387,11 +433,12 @@ async function loadDashboard() {
         ? items.filter(i => i.category_id == categoryFilter)
         : items;
 
-    const needsPurchase = filteredItems.filter(i => i.needs_purchase);
-    const lowStock = filteredItems.filter(i => i.low_stock);
+    dashboardNeedsPurchase = filteredItems.filter(i => i.needs_purchase);
+    dashboardLowStock = filteredItems.filter(i => i.low_stock);
 
-    renderItemsGridGrouped('needs-purchase-list', needsPurchase, true);
-    renderItemsGridGrouped('low-stock-list', lowStock, false);
+    expandedDashboardRow = null;
+    renderDashboardItems('needs-purchase-list', dashboardNeedsPurchase);
+    renderDashboardItems('low-stock-list', dashboardLowStock);
 }
 
 async function loadInventory() {
@@ -1110,6 +1157,116 @@ function renderItemCards(items, showUrgent) {
             </div>
         `;
     }).join('');
+}
+
+// Render compact row HTML for dashboard items
+function renderCompactRows(items) {
+    return items.map(item => {
+        const urgentClass = item.needs_purchase ? 'urgent' : (item.low_stock ? 'warning' : '');
+        const daysClass = (item.days_until_empty === null || item.days_until_empty <= 0) ? 'urgent' : (item.days_until_empty <= 7 ? 'warning' : '');
+        const daysText = item.days_until_empty === null ? 'N/A'
+            : item.days_until_empty <= 0 ? 'Empty!'
+            : `${item.days_until_empty}d`;
+
+        return `
+            <div class="compact-row ${urgentClass}" data-item-id="${item.id}">
+                <div class="compact-row-main">
+                    <span class="compact-row-icon">${escapeHtml(item.category_icon)}</span>
+                    <span class="compact-row-name">${escapeHtml(item.name)}</span>
+                    <span class="compact-row-qty">${item.current_quantity || 0} ${escapeHtml(item.unit)}</span>
+                    <span class="compact-row-days ${daysClass}">${daysText}</span>
+                </div>
+                <div class="compact-row-actions">
+                    <button class="btn-purchase" data-id="${item.id}" data-name="${escapeHtml(item.name)}">+ Purchase</button>
+                    <button class="btn-edit" data-id="${item.id}">Edit</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render dashboard items as compact rows (replaces renderItemsGridGrouped for dashboard)
+function renderDashboardItems(containerId, items) {
+    const container = document.getElementById(containerId);
+
+    if (items.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No items to display</p></div>';
+        return;
+    }
+
+    // On mobile, group by category with collapsible headers
+    if (isMobileView()) {
+        const grouped = groupItemsByCategory(items);
+
+        container.innerHTML = grouped.map(group => {
+            const key = `${containerId}-${group.id}`;
+            const isCollapsed = collapsedCategories[key];
+            const collapsedClass = isCollapsed ? 'collapsed' : '';
+
+            return `
+                <div class="category-group">
+                    <div class="category-header ${collapsedClass}"
+                         data-category-id="${group.id}"
+                         data-container="${containerId}">
+                        <span class="toggle-icon">▼</span>
+                        <span class="category-title">${escapeHtml(group.icon)} ${escapeHtml(group.name)}</span>
+                        <span class="category-count">${group.items.length}</span>
+                    </div>
+                    <div id="category-content-${containerId}-${group.id}"
+                         class="category-content ${collapsedClass}"
+                         style="${!isCollapsed ? 'max-height: 2000px;' : ''}">
+                        ${renderCompactRows(group.items)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add collapse toggle listeners
+        container.querySelectorAll('.category-header').forEach(header => {
+            header.addEventListener('click', () => {
+                toggleCategory(header.dataset.categoryId, header.dataset.container);
+            });
+        });
+    } else {
+        // Desktop: render flat list of compact rows
+        container.innerHTML = renderCompactRows(items);
+    }
+
+    // Tap-to-expand: accordion behavior (only one row open at a time)
+    container.querySelectorAll('.compact-row-main').forEach(main => {
+        main.addEventListener('click', () => {
+            const row = main.closest('.compact-row');
+            const itemId = row.dataset.itemId;
+
+            if (expandedDashboardRow === itemId) {
+                // Collapse the currently expanded row
+                row.classList.remove('expanded');
+                expandedDashboardRow = null;
+            } else {
+                // Collapse the previously expanded row (if any)
+                const prev = document.querySelector('.compact-row.expanded');
+                if (prev) prev.classList.remove('expanded');
+
+                // Expand this row
+                row.classList.add('expanded');
+                expandedDashboardRow = itemId;
+            }
+        });
+    });
+
+    // Purchase and Edit button listeners
+    container.querySelectorAll('.btn-purchase').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openQuickPurchase(parseInt(btn.dataset.id), btn.dataset.name);
+        });
+    });
+    container.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEditModal(parseInt(btn.dataset.id));
+        });
+    });
 }
 
 // Category management functions

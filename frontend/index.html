@@ -76,18 +76,24 @@
             </div>
 
             <div class="section">
-                <h2>Items to Purchase</h2>
+                <div class="section-header">
+                    <h2>Items to Purchase</h2>
+                    <button id="copy-purchase-list" class="btn-copy" title="Copy item names to clipboard">&#128203;</button>
+                </div>
                 <div class="filter-bar">
                     <select id="dashboard-category-filter">
                         <option value="">All Categories</option>
                     </select>
                 </div>
-                <div id="needs-purchase-list" class="items-grid"></div>
+                <div id="needs-purchase-list" class="items-compact-list"></div>
             </div>
 
             <div class="section">
-                <h2>Low Stock (Less than 7 days)</h2>
-                <div id="low-stock-list" class="items-grid"></div>
+                <div class="section-header">
+                    <h2>Low Stock (Less than 7 days)</h2>
+                    <button id="copy-lowstock-list" class="btn-copy" title="Copy item names to clipboard">&#128203;</button>
+                </div>
+                <div id="low-stock-list" class="items-compact-list"></div>
             </div>
         </main>
 

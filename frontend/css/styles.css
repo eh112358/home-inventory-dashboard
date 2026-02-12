@@ -277,6 +277,10 @@ main {
     margin-bottom: 1rem;
 }
 
+.section-header h2 {
+    margin-bottom: 0;
+}
+
 /* ===== Stats Bar (mobile: single column) ===== */
 .stats-bar {
     display: grid;
@@ -360,6 +364,144 @@ main {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.75rem;
+}
+
+/* ===== Compact Dashboard Rows ===== */
+.items-compact-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.compact-row {
+    background: white;
+    transition: background 0.15s;
+}
+
+.compact-row + .compact-row {
+    border-top: 1px solid var(--gray-200);
+}
+
+/* When compact rows are direct children of the list container (desktop flat layout) */
+.items-compact-list > .compact-row:first-child {
+    border-top: 1px solid var(--gray-200);
+}
+
+.items-compact-list > .compact-row:last-child {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.compact-row.urgent {
+    background: #fef2f2;
+}
+
+.compact-row.warning {
+    background: #fffbeb;
+}
+
+.compact-row-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 40px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
+}
+
+.compact-row-main:active {
+    background: var(--gray-100);
+}
+
+.compact-row-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    width: 1.25rem;
+    text-align: center;
+}
+
+.compact-row-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 0.9rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compact-row-qty {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.compact-row-days {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    background: var(--gray-200);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.compact-row-days.urgent {
+    background: var(--danger);
+    color: white;
+}
+
+.compact-row-days.warning {
+    background: var(--warning);
+    color: white;
+}
+
+.compact-row-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 0.75rem 0 2.5rem;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.2s ease-out, opacity 0.15s, padding-bottom 0.2s;
+}
+
+.compact-row.expanded .compact-row-actions {
+    max-height: 50px;
+    opacity: 1;
+    padding-bottom: 0.5rem;
+}
+
+.compact-row-actions button {
+    flex: 1;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+/* Copy button */
+.btn-copy {
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--gray-500);
+    transition: background 0.2s, color 0.2s;
+    line-height: 1;
+}
+
+.btn-copy:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.btn-copy:active {
+    background: var(--gray-200);
 }
 
 .item-card {
@@ -1756,6 +1898,19 @@ main {
 
     .multi-edit-input {
         width: 80px;
+    }
+
+    /* Compact dashboard rows: desktop tweaks */
+    .compact-row-main {
+        padding: 0.4rem 1rem;
+    }
+
+    .compact-row-name {
+        font-size: 0.95rem;
+    }
+
+    .compact-row.expanded .compact-row-actions {
+        padding-left: 3rem;
     }
 
     /* FAB: hidden on desktop */
