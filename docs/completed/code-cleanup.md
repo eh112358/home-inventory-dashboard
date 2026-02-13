@@ -1,6 +1,6 @@
-# Code Cleanup: Orphaned & Obsolete Code
+# Code Cleanup: Orphaned & Obsolete Code — COMPLETED
 
-A full audit of the application found dead functions, unused styles, vestigial parameters, and other orphaned code left behind from previous refactors. None of this code causes bugs, but removing it reduces maintenance burden and makes the codebase easier to understand.
+A full audit of the application found dead functions, unused styles, vestigial parameters, and other orphaned code left behind from previous refactors. All items have been resolved.
 
 ---
 
@@ -34,10 +34,11 @@ A full audit of the application found dead functions, unused styles, vestigial p
 
 ## MEDIUM PRIORITY — Unused Backend Code
 
-### 5. Remove unused `timedelta` import
-- **File:** `backend/app.py` line 4
-- **What it is:** `from datetime import datetime, timedelta` — `timedelta` is imported but never used anywhere in the file.
-- **Fix:** Change to `from datetime import datetime`
+### 5. ✅ Remove unused `timedelta` import — COMPLETED
+- ~~**File:** `backend/app.py` line 4~~
+- ~~**What it is:** `from datetime import datetime, timedelta` — `timedelta` was imported but never used.~~
+
+**Removed:** Changed to `from datetime import datetime`.
 
 ---
 
@@ -48,13 +49,12 @@ A full audit of the application found dead functions, unused styles, vestigial p
 
 **Resolved:** Automatically fixed when items #1 and #2 were completed — the entire functions containing this parameter were deleted.
 
-### 7. Replace inline styles with CSS classes
-- **File:** `frontend/js/app.js`
-  - Line 621: `style="font-size:0.8rem;color:var(--gray-500)"` on a `<span>` for unit display in the inventory list
-  - Lines 1098, 1217: `style="${!isCollapsed ? 'max-height: 2000px;' : ''}"` on category content divs
-- **What it is:** Inline styles that should be CSS classes for consistency with the rest of the codebase.
-- **Fix for line 621:** Create a `.list-item-unit` CSS class with those properties
-- **Fix for lines 1098/1217:** Create a CSS rule like `.category-content:not(.collapsed) { max-height: 2000px; }` and remove the inline style entirely. The collapse/expand already toggles the `.collapsed` class.
+### 7. ✅ Replace inline styles with CSS classes — COMPLETED
+- ~~**File:** `frontend/js/app.js`~~
+  - ~~Line 621: `style="font-size:0.8rem;color:var(--gray-500)"` on a `<span>` for unit display in the multi-edit list~~
+  - ~~Line 1124: `style="${!isCollapsed ? 'max-height: 2000px;' : ''}"` on category content divs~~
+
+**Fixed:** Created `.multi-edit-unit` CSS class for the unit label. Added `max-height: 2000px` to the `.category-content` CSS rule so the inline style is no longer needed. Zero inline `style=` attributes remain in app.js.
 
 ---
 
@@ -66,10 +66,8 @@ A full audit of the application found dead functions, unused styles, vestigial p
 | 2 | Remove `renderItemCards()` | app.js | ~33 | ✅ Done |
 | 3 | Remove `.item-card` CSS | styles.css | ~89 | ✅ Done |
 | 4 | Remove `.items-grid` CSS | styles.css | ~12 | ✅ Done |
-| 5 | Remove unused `timedelta` import | app.py | 1 | To do |
+| 5 | Remove unused `timedelta` import | app.py | 1 | ✅ Done |
 | 6 | Remove `showUrgent` parameter | app.js | (covered by #1-2) | ✅ Resolved |
-| 7 | Replace inline styles with CSS classes | app.js, styles.css | net 0 (refactor) | To do |
+| 7 | Replace inline styles with CSS classes | app.js, styles.css | net 0 (refactor) | ✅ Done |
 
-**Completed:** ~190 lines of dead code removed from `app.js` and `styles.css`. All 46 backend tests pass. Frontend JS parses cleanly. No stale class references remain.
-
-**Remaining:** 2 items (medium + low priority)
+**All items complete.** ~190 lines of dead code removed. All 46 backend tests pass. Frontend JS parses cleanly. No stale class references or inline styles remain.

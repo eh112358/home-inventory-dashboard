@@ -21,10 +21,12 @@ Based on my comprehensive exploration, here are my recommendations for simplifyi
 
 ## UI Improvements
 
-### 9. Add Show/Hide Toggle to Login Password Field
-- Password field has no visibility toggle, making it hard to verify input on mobile
-- Add an eye icon button next to the password input that toggles between `type="password"` and `type="text"`
-- Frontend-only change: `index.html` (button markup) + `app.js` (toggle handler) + `styles.css` (button positioning)
+### 9. ✅ Add Show/Hide Toggle to Login Password Field — COMPLETED
+- ~~Password field has no visibility toggle, making it hard to verify input on mobile~~
+- ~~Add a small eye icon button next to the password input field that toggles between `type="password"` and `type="text"`~~
+- ~~Frontend-only change: `index.html` (button markup) + `app.js` (toggle handler) + `styles.css` (button positioning)~~
+
+**Implemented:** Added eye toggle button inside password input. Wrapped input in `.password-wrapper` with absolutely-positioned toggle button (44px touch target). Click handler swaps between 👁/🙈 icons and toggles input type. (Commit: 2fac302)
 
 ## Medium-Priority Refactoring
 
@@ -84,4 +86,4 @@ Based on my comprehensive exploration, here are my recommendations for simplifyi
 | 6 | Consolidate purchase rendering | ✅ Done |
 | 7 | Remove unused API endpoint | ✅ Done |
 | 8 | Simplify dashboard calculations | ✅ Done |
-| 9 | Add show/hide toggle to login password field | To do |
+| 9 | Add show/hide toggle to login password field | ✅ Done |

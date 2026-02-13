@@ -618,7 +618,7 @@ function renderMultiEditList() {
                         <input type="number" inputmode="decimal" step="0.1" min="0"
                                class="multi-edit-input" data-field="current_quantity"
                                data-id="${item.id}" value="${qtyValue}">
-                        <span style="font-size:0.8rem;color:var(--gray-500)">${escapeHtml(item.unit)}</span>
+                        <span class="multi-edit-unit">${escapeHtml(item.unit)}</span>
                     </div>
                     <div class="multi-edit-field">
                         <label>Use/wk:</label>
@@ -1120,8 +1120,7 @@ function renderDashboardItems(containerId, items) {
                         <span class="category-count">${group.items.length}</span>
                     </div>
                     <div id="category-content-${containerId}-${group.id}"
-                         class="category-content ${collapsedClass}"
-                         style="${!isCollapsed ? 'max-height: 2000px;' : ''}">
+                         class="category-content ${collapsedClass}">
                         ${renderCompactRows(group.items)}
                     </div>
                 </div>
