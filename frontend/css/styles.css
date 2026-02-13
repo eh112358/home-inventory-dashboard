@@ -359,13 +359,6 @@ main {
     border-color: var(--primary);
 }
 
-/* ===== Items Grid (mobile: single column) ===== */
-.items-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-}
-
 /* ===== Compact Dashboard Rows ===== */
 .items-compact-list {
     display: flex;
@@ -502,95 +495,6 @@ main {
 
 .btn-copy:active {
     background: var(--gray-200);
-}
-
-.item-card {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    padding: 1rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.item-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.item-card.urgent {
-    border-color: var(--danger);
-    background: #fef2f2;
-}
-
-.item-card.warning {
-    border-color: var(--warning);
-    background: #fffbeb;
-}
-
-.item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.75rem;
-}
-
-.item-name {
-    font-weight: 600;
-    font-size: 1.05rem;
-}
-
-.item-category {
-    font-size: 0.8rem;
-    color: var(--gray-500);
-}
-
-.item-stats {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.item-quantity {
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-
-.item-unit {
-    color: var(--gray-500);
-    font-size: 0.9rem;
-}
-
-.item-days {
-    font-size: 0.85rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    background: var(--gray-200);
-}
-
-.item-days.urgent {
-    background: var(--danger);
-    color: white;
-}
-
-.item-days.warning {
-    background: var(--warning);
-    color: white;
-}
-
-.item-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.item-actions button {
-    flex: 1;
-    padding: 0.5rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: background 0.2s;
 }
 
 .btn-purchase {
@@ -1387,10 +1291,6 @@ main {
     margin-top: 0;
 }
 
-.category-content .items-grid {
-    gap: 0.75rem;
-}
-
 /* ===== Empty States ===== */
 .empty-state {
     text-align: center;
@@ -1640,12 +1540,6 @@ main {
     .view-toggle {
         display: flex;
         gap: 0.25rem;
-    }
-
-    /* Items Grid: multi-column */
-    .items-grid {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1rem;
     }
 
     /* List Item: horizontal row on desktop */

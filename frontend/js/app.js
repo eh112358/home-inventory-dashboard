@@ -1066,99 +1066,6 @@ function isMobileView() {
     return window.innerWidth <= 768;
 }
 
-// Render items grid with category grouping (mobile) or flat (desktop)
-function renderItemsGridGrouped(containerId, items, showUrgent) {
-    const container = document.getElementById(containerId);
-
-    if (items.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>No items to display</p></div>';
-        return;
-    }
-
-    // On mobile, group by category
-    if (isMobileView()) {
-        const grouped = groupItemsByCategory(items);
-
-        container.innerHTML = grouped.map(group => {
-            const key = `${containerId}-${group.id}`;
-            const isCollapsed = collapsedCategories[key];
-            const collapsedClass = isCollapsed ? 'collapsed' : '';
-
-            return `
-                <div class="category-group">
-                    <div class="category-header ${collapsedClass}"
-                         data-category-id="${group.id}"
-                         data-container="${containerId}">
-                        <span class="toggle-icon">▼</span>
-                        <span class="category-title">${escapeHtml(group.icon)} ${escapeHtml(group.name)}</span>
-                        <span class="category-count">${group.items.length}</span>
-                    </div>
-                    <div id="category-content-${containerId}-${group.id}"
-                         class="category-content ${collapsedClass}"
-                         style="${!isCollapsed ? 'max-height: 2000px;' : ''}">
-                        <div class="items-grid">
-                            ${renderItemCards(group.items, showUrgent)}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // Add collapse toggle listeners
-        container.querySelectorAll('.category-header').forEach(header => {
-            header.addEventListener('click', () => {
-                toggleCategory(header.dataset.categoryId, header.dataset.container);
-            });
-        });
-    } else {
-        // Desktop: render cards directly (container already has items-grid class)
-        container.innerHTML = renderItemCards(items, showUrgent);
-    }
-
-    // Add event listeners for buttons
-    container.querySelectorAll('.btn-purchase').forEach(btn => {
-        btn.addEventListener('click', () => openQuickPurchase(parseInt(btn.dataset.id), btn.dataset.name));
-    });
-    container.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
-    });
-}
-
-// Render individual item cards HTML
-function renderItemCards(items, showUrgent) {
-    return items.map(item => {
-        const urgentClass = item.needs_purchase ? 'urgent' : (item.low_stock ? 'warning' : '');
-        const daysClass = (item.days_until_empty === null || item.days_until_empty <= 0) ? 'urgent' : (item.days_until_empty <= 7 ? 'warning' : '');
-        const daysText = item.days_until_empty === null ? 'N/A'
-            : item.days_until_empty <= 0 ? 'Empty!'
-            : `${item.days_until_empty}d left`;
-
-        return `
-            <div class="item-card ${urgentClass}">
-                <div class="item-header">
-                    <div>
-                        <div class="item-name">${escapeHtml(item.name)}</div>
-                        <div class="item-category">${escapeHtml(item.category_icon)} ${escapeHtml(item.category_name)}</div>
-                    </div>
-                </div>
-                <div class="item-stats">
-                    <div>
-                        <span class="item-quantity">${item.current_quantity || 0}</span>
-                        <span class="item-unit">${escapeHtml(item.unit)}</span>
-                    </div>
-                    <span class="item-days ${daysClass}">${daysText}</span>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-purchase" data-id="${item.id}" data-name="${escapeHtml(item.name)}">
-                        + Purchase
-                    </button>
-                    <button class="btn-edit" data-id="${item.id}">Edit</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
 // Render compact row HTML for dashboard items
 function renderCompactRows(items) {
     return items.map(item => {
@@ -1185,7 +1092,7 @@ function renderCompactRows(items) {
     }).join('');
 }
 
-// Render dashboard items as compact rows (replaces renderItemsGridGrouped for dashboard)
+// Render dashboard items as compact rows with tap-to-expand actions
 function renderDashboardItems(containerId, items) {
     const container = document.getElementById(containerId);
 
